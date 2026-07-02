@@ -1,7 +1,12 @@
 # neuro-dynadojo
 
+[![tests](https://github.com/m9h/neuro-dynadojo/actions/workflows/ci.yml/badge.svg)](https://github.com/m9h/neuro-dynadojo/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **A ground-truth benchmark for M/EEG dynamics — connectivity recovery, directed flow,
 traveling waves, and foundation-model probing — under realistic sensor confounds.**
+
+![Netsim confound battery and SNR scaling: no method wins across confounds](figures/preview.png)
 
 Real M/EEG has no known connectivity ground truth, so a method's claim to *recover
 structure* can only be validated on simulation. [FSLNets/netsim](https://www.fmrib.ox.ac.uk/datasets/netsim/)
@@ -67,7 +72,10 @@ print(res)   # {'metric': 'r', 'r': ..., 'r2': ..., 'n': ...}
 
 Generators emit `(n_ch, n_times)` sensor recordings (braindecode's input shape) with known
 factors — coupling, delay, regime, wavenumber, frequency, flow direction — so any FM can be
-scored on whether its embedding recovers the physics.
+scored on whether its embedding recovers the physics. See
+[`examples/fm_probe.py`](examples/fm_probe.py) (spectral baseline — the floor to beat) and
+[`examples/fm_probe_braindecode.py`](examples/fm_probe_braindecode.py) (load a braindecode /
+HuggingFace model with `from_pretrained` and score it the same way).
 
 ## What the benchmark shows (the honest through-line)
 
