@@ -20,7 +20,7 @@ mne = ["mne"]                        # real-data epoching for empirical extensio
 dev = ["pytest"]
 
 [project.urls]
-Homepage = "https://github.com/mhough/neuro-dynadojo"
+Homepage = "https://github.com/m9h/neuro-dynadojo"
 
 [tool.setuptools.packages.find]
 where = ["src"]

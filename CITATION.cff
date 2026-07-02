@@ -6,7 +6,7 @@ authors:
     given-names: Morgan
 version: 0.1.0
 license: MIT
-repository-code: "https://github.com/mhough/neuro-dynadojo"
+repository-code: "https://github.com/m9h/neuro-dynadojo"
 keywords: [EEG, MEG, connectivity, dynamics, benchmark, foundation-models, volume-conduction]
 references:
   - type: article

@@ -32,7 +32,7 @@ same way as a classical estimator.
 ## Install
 
 ```bash
-git clone https://github.com/mhough/neuro-dynadojo
+git clone https://github.com/m9h/neuro-dynadojo
 cd neuro-dynadojo
 pip install -e .            # core: numpy, scipy, scikit-learn
 pip install -e .[fm]        # + torch, braindecode  (load & probe a foundation model)
