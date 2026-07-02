@@ -72,6 +72,18 @@ def bandpower_embed(obs, fs=250.0, bands=((1, 4), (4, 8), (8, 13), (13, 30), (30
     return np.concatenate([np.log(P[:, (f >= lo) & (f < hi)].mean(1) + 1e-20) for lo, hi in bands])
 
 
+def bendr_embed(model, obs, device="cpu"):
+    """Embed with BENDR on its EXACT pretraining montage. `obs` = the 19 BENDR EEG channels in
+    order (generator `montage="bendr"`). The 19 EEG channels are per-channel z-scored and the
+    20th 'SCALE' channel is appended as a CONSTANT bounded relative-amplitude (dn3's
+    MappingDeep1010 SCALE is a per-recording scalar, not a time series and not re-normalised)."""
+    x = np.asarray(obs, float)
+    xe = (x - x.mean(1, keepdims=True)) / (x.std(1, keepdims=True) + 1e-8)   # z-score EEG
+    scale_val = float(np.tanh(np.log(np.sqrt((x ** 2).mean()) + 1e-8)))      # bounded scalar
+    scale = np.full((1, x.shape[1]), scale_val)
+    return braindecode_embed(model, np.vstack([xe, scale]), device=device, standardize=False)
+
+
 def braindecode_embed(model, obs, device="cpu", standardize=True):
     """Adapter for a braindecode / HuggingFace-style EEG foundation model (frozen). Feeds one
     recording as `(1, n_chans, n_times)` and returns the encoder EMBEDDING (via

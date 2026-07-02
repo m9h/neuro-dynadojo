@@ -9,4 +9,4 @@ from .algorithms import (fc_algorithms, correlation_fc, partialcorr_fc, imag_coh
 from .challenges import edge_recovery_auc, directed_edge_auc, wavenumber_consistency
 from .bench import run_benchmark, adversarial_search
 from .probes import (probe_factor, factor_dataset, representation_probe,
-                     bandpower_embed, braindecode_embed)
+                     bandpower_embed, braindecode_embed, bendr_embed)

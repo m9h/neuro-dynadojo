@@ -81,23 +81,26 @@ and [`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py) (a **real pretrai
 
 Probing a frozen, pretrained **BENDR** (loaded from the HF Hub via braindecode) for the
 generative factors of our synthetic sensor recordings, factor-recovery |r| vs the spectral
-baseline — on a generic montage vs a **real 10-20 montage** (`montage="1020_20"`):
+baseline — across three montages, incl. BENDR's **exact** 19-EEG pretraining montage
+(`montage="bendr"`, standard_1005 positions + the SCALE channel):
 
-| factor | BENDR (generic) | BENDR (real 10-20) | spectral baseline |
-|---|---|---|---|
-| frequency | 0.23 | 0.59 | **0.98** |
-| coupling | 0.30 | 0.03 | **0.93** |
-| velocity | 0.32 | 0.43 | **0.97** |
-| phase-lag | 0.15 | 0.21 | **0.44** |
+| factor | BENDR (random) | BENDR (10-20) | BENDR (exact) | spectral baseline |
+|---|---|---|---|---|
+| frequency | 0.23 | 0.59 | 0.12 | **0.98** |
+| coupling | 0.30 | 0.03 | 0.18 | **0.93** |
+| velocity | 0.32 | 0.43 | 0.22 | **0.97** |
+| phase-lag | 0.15 | 0.21 | 0.30 | **0.44** |
+| *embedding responsiveness* | *0.56* | *1.06* | *0.86* | — |
 
-On a **generic** montage BENDR's embedding is nearly *invariant* to the input (between-class shift
-< within-class noise) — an **out-of-distribution collapse**, not a verdict on the model. Switching
-to a **real 10-20 montage** lifts that collapse (embedding-response ratio 0.56 → 1.06) and improves
-frequency/velocity recovery — so a realistic montage is **necessary**. But BENDR still trails a
-trivial spectral baseline on every factor, so it is **not sufficient**: full fairness needs BENDR's
-*exact* training montage/channel identities and realistic signal statistics (richer 1/f, artifacts).
-The harness and the montage generators are done; that realism is the science ahead. Run
-[`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py) (`pip install -e .[fm,mne]`).
+On a **generic** montage BENDR's embedding is nearly *invariant* to the input (an
+**out-of-distribution collapse**, not a verdict on the model). A **real montage** lifts the
+collapse (responsiveness 0.56 → 1.06) — but even BENDR's **exact** pretraining montage does **not**
+close the gap to a trivial spectral baseline, and more real spatial channels (generic-20) beat the
+exact-19. So **the montage is not the bottleneck: the barrier is signal statistics** — synthetic
+oscillations are out-of-distribution for a model trained on real EEG (1/f, artifacts,
+non-stationarity). The eval harness and the exact-montage infrastructure are done; realistic signal
+statistics are the science ahead. Run [`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py)
+(`pip install -e .[fm,mne]`).
 
 ## What the benchmark shows (the honest through-line)
 
