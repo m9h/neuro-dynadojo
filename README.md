@@ -99,14 +99,25 @@ close the gap, and more real spatial channels (generic-20) beat the exact-19. So
 the bottleneck.
 
 Adding **realistic signal statistics** — a spatially-correlated **1/f cortical background**
-(`background=`, an EEG-like aperiodic spectrum with oscillatory peaks on top) — changes the picture:
-it **shrinks the trivial baseline's easy win** (clean-signal frequency ~0.90 → ~0.45 under 1/f) and
-narrows the FM-vs-baseline gap, because a spectral shortcut no longer trivially solves the task.
-But it does so by making the task *harder*, not by BENDR's frozen embedding recovering the factors —
-and heavy background buries the signal for everyone. So realistic statistics are needed to pose a
-*fair* question (and the harness now supports them), but this first re-probe does **not** show BENDR
-encoding the dynamics. Run [`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py)
-(`pip install -e .[fm,mne]`); numbers are noisy at the example's small n.
+(`background=`) — poses the *fair* question. The scaled probe (**n=100 per factor**, six generative
+factors, on BENDR's exact montage with 1/f background, GPU-batched) gives the robust verdict:
+
+| factor | BENDR \|r\| | spectral baseline \|r\| | Δ |
+|---|---|---|---|
+| frequency | 0.32 | 0.49 | −0.17 |
+| coupling | 0.16 | 0.58 | −0.43 |
+| delay (velocity) | 0.30 | 0.92 | −0.62 |
+| regime | 0.25 | 0.77 | −0.52 |
+| phase-lag | 0.04 | 0.58 | −0.54 |
+| wavenumber | 0.38 | 0.66 | −0.27 |
+
+**BENDR's frozen embedding trails a trivial band-power baseline on every one of six generative
+factors.** It carries *some* signal (|r| 0.04–0.38, above chance for most) but consistently and
+substantially less than the spectrum — even on its exact montage with in-distribution 1/f input.
+So the fair, scaled, mechanistic probe reaches a clean conclusion: *an off-the-shelf frozen EEG-FM
+embedding does not encode these generative dynamics factors as well as band-power does.* That is
+the finding the benchmark exists to produce. Run
+[`examples/fm_probe_bendr_scaled.py`](examples/fm_probe_bendr_scaled.py) (`pip install -e .[fm,mne]`).
 
 ## What the benchmark shows (the honest through-line)
 
