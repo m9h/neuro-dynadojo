@@ -144,20 +144,27 @@ scaling laws is in [`figures/`](figures/).
 ### Multi-FM leaderboard (interop with emeg-fm + fmscope)
 
 A three-project pipeline scores foundation models on the *known* generative factors: **emeg-fm**
-(the NeuroTechX Atlas) loads the EEG-FM zoo through one montage-agnostic extractor; **neuro-dynadojo**
-supplies the labeled synthetic recordings; **fmscope** scores each frozen embedding with its canonical
-linear probe (`eval_seed`, balanced accuracy). Scored this way (chance = 0.50):
+(the NeuroTechX Atlas) loads the EEG-FM zoo through one montage-agnostic extractor (in its NGC
+container, braindecode 1.5.2); **neuro-dynadojo** supplies the labeled synthetic recordings;
+**fmscope** scores each frozen embedding with its canonical linear probe (`eval_seed`, balanced
+accuracy). Three real pretrained FMs, scored this way (chance = 0.50):
 
 | model | freq | coupling | delay | regime | phase | wavenum | mean |
 |---|---|---|---|---|---|---|---|
-| baseline (band-power) | 0.61 | 0.62 | 0.81 | 0.90 | 0.41 | 0.28 | **0.60** |
-| BENDR (frozen) | 0.43 | 0.49 | 0.44 | 0.51 | 0.44 | 0.48 | 0.47 |
+| baseline (band-power) | 0.57 | 0.68 | **0.80** | 0.83 | 0.53 | 0.33 | **0.62** |
+| CBraMod | 0.43 | **0.72** | 0.54 | 0.90 | **0.60** | **0.47** | 0.61 |
+| BIOT | **0.58** | 0.62 | 0.71 | 0.88 | 0.38 | 0.34 | 0.58 |
+| LUNA | 0.55 | 0.56 | 0.51 | **0.92** | 0.52 | 0.41 | 0.58 |
 
-BENDR sits near chance while band-power is well above it — the *same verdict* the regression probe
-gave, now cross-validated by fmscope's independent LP. This matches the Atlas's own finding that
-**classical features beat EEG-FMs on spectral tasks**. The full zoo (EEGPT/LaBraM/BIOT/CBraMod/
-LUNA/REVE) loads via emeg-fm's container extractor (braindecode 1.5.2); the bridge accepts any
-`(N,C,T)→(N,D)` extractor. See [`examples/multi_fm_leaderboard.py`](examples/multi_fm_leaderboard.py).
+The result is **factor-dependent**, not a flat verdict: band-power wins overall and on the *spectral*
+factors (frequency, delay — its home turf), but **every FM beats it on `regime`** (0.88–0.92 vs 0.83)
+and **CBraMod also beats it on coupling, phase-lag and wavenumber** — the dynamics/spatial factors.
+CBraMod (0.61) ties the baseline, winning 4 of 6 factors. This is the *mechanistic* form of the
+Atlas's finding — **classical wins on spectral, FMs win on dynamics** — measured against known ground
+truth. Run inside emeg-fm's container:
+[`examples/run_leaderboard_container.sh`](examples/run_leaderboard_container.sh)
+(BENDR/LaBraM need emeg-fm's per-model hand adapters). The stock-venv bridge
+[`examples/multi_fm_leaderboard.py`](examples/multi_fm_leaderboard.py) scores whatever loads directly.
 
 ## Layout
 
