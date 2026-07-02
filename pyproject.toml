@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neuro-dynadojo"
+version = "0.1.0"
+description = "A DynaDojo/FSLNets-style ground-truth benchmark for M/EEG dynamics, connectivity recovery, and foundation-model probing."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Morgan Hough" }]
+keywords = ["EEG", "MEG", "dynamics", "connectivity", "benchmark", "foundation-models",
+            "volume-conduction", "FSLNets", "DynaDojo"]
+dependencies = ["numpy", "scipy", "scikit-learn"]
+
+[project.optional-dependencies]
+fm = ["torch", "braindecode"]        # bring-your-own foundation model (HuggingFace-style loading)
+mne = ["mne"]                        # real-data epoching for empirical extensions
+dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/mhough/neuro-dynadojo"
+
+[tool.setuptools.packages.find]
+where = ["src"]

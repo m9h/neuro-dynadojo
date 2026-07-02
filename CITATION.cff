@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use neuro-dynadojo, please cite it and the FSLNets/DynaDojo templates it builds on."
+title: "neuro-dynadojo: a ground-truth benchmark for M/EEG dynamics and foundation-model probing"
+authors:
+  - family-names: Hough
+    given-names: Morgan
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/mhough/neuro-dynadojo"
+keywords: [EEG, MEG, connectivity, dynamics, benchmark, foundation-models, volume-conduction]
+references:
+  - type: article
+    authors: [{family-names: Smith, given-names: S. M.}]
+    title: "Network modelling methods for FMRI"
+    journal: NeuroImage
+    volume: 54
+    year: 2011
+  - type: conference-paper
+    authors: [{family-names: Bhamidipaty}, {family-names: Kanwal}]
+    title: "DynaDojo: An Extensible Platform for Benchmarking Scaling in Dynamical System Identification"
+    year: 2023
