@@ -141,6 +141,24 @@ the finding the benchmark exists to produce. Run
 An interactive figure of the regime × challenge identifiability matrix, confound battery, and
 scaling laws is in [`figures/`](figures/).
 
+### Multi-FM leaderboard (interop with emeg-fm + fmscope)
+
+A three-project pipeline scores foundation models on the *known* generative factors: **emeg-fm**
+(the NeuroTechX Atlas) loads the EEG-FM zoo through one montage-agnostic extractor; **neuro-dynadojo**
+supplies the labeled synthetic recordings; **fmscope** scores each frozen embedding with its canonical
+linear probe (`eval_seed`, balanced accuracy). Scored this way (chance = 0.50):
+
+| model | freq | coupling | delay | regime | phase | wavenum | mean |
+|---|---|---|---|---|---|---|---|
+| baseline (band-power) | 0.61 | 0.62 | 0.81 | 0.90 | 0.41 | 0.28 | **0.60** |
+| BENDR (frozen) | 0.43 | 0.49 | 0.44 | 0.51 | 0.44 | 0.48 | 0.47 |
+
+BENDR sits near chance while band-power is well above it — the *same verdict* the regression probe
+gave, now cross-validated by fmscope's independent LP. This matches the Atlas's own finding that
+**classical features beat EEG-FMs on spectral tasks**. The full zoo (EEGPT/LaBraM/BIOT/CBraMod/
+LUNA/REVE) loads via emeg-fm's container extractor (braindecode 1.5.2); the bridge accepts any
+`(N,C,T)→(N,D)` extractor. See [`examples/multi_fm_leaderboard.py`](examples/multi_fm_leaderboard.py).
+
 ## Layout
 
 ```
