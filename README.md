@@ -73,9 +73,30 @@ print(res)   # {'metric': 'r', 'r': ..., 'r2': ..., 'n': ...}
 Generators emit `(n_ch, n_times)` sensor recordings (braindecode's input shape) with known
 factors — coupling, delay, regime, wavenumber, frequency, flow direction — so any FM can be
 scored on whether its embedding recovers the physics. See
-[`examples/fm_probe.py`](examples/fm_probe.py) (spectral baseline — the floor to beat) and
-[`examples/fm_probe_braindecode.py`](examples/fm_probe_braindecode.py) (load a braindecode /
-HuggingFace model with `from_pretrained` and score it the same way).
+[`examples/fm_probe.py`](examples/fm_probe.py) (spectral baseline — the floor to beat),
+[`examples/fm_probe_braindecode.py`](examples/fm_probe_braindecode.py) (any braindecode model),
+and [`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py) (a **real pretrained FM**, BENDR).
+
+### First real-FM result (BENDR) — and an honest caveat
+
+Probing a frozen, pretrained **BENDR** (loaded from the HF Hub via braindecode) on our 20-ch
+synthetic sensor recordings, factor-recovery |r| vs the spectral baseline:
+
+| factor | BENDR | spectral baseline |
+|---|---|---|
+| frequency | 0.23 | **0.94** |
+| coupling | 0.30 | **0.95** |
+| velocity | 0.32 | **0.97** |
+| phase-lag | 0.15 | **0.57** |
+
+BENDR underperforms a trivial baseline on *every* factor — but this is **not** a verdict on the
+model. A diagnostic shows its embedding is nearly **invariant** to our input (between-frequency
+shift < within-class noise, robust across input scales): the synthetic data is
+**out-of-distribution** (generic montage, synthetic signal statistics), so the pretrained
+representation barely responds. That is itself a finding — *pretrained EEG-FM embeddings do not
+transfer off-the-shelf to simulated data* — and it sets the next milestone: **realistic montages
+and signal statistics** so an FM receives in-distribution input and the mechanistic probe becomes
+fair. The harness is done; the realism is the science ahead.
 
 ## What the benchmark shows (the honest through-line)
 

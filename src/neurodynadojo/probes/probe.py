@@ -72,14 +72,22 @@ def bandpower_embed(obs, fs=250.0, bands=((1, 4), (4, 8), (8, 13), (13, 30), (30
     return np.concatenate([np.log(P[:, (f >= lo) & (f < hi)].mean(1) + 1e-20) for lo, hi in bands])
 
 
-def braindecode_embed(model, obs, device="cpu"):
-    """Adapter for a braindecode / HuggingFace-style EEG model (frozen). Feeds one recording
-    as `(1, n_chans, n_times)` and returns the mean-pooled output as the embedding. Pass a
-    feature-extractor model (classifier head removed) for representation probing. Requires
-    the optional `[fm]` extra (torch + braindecode)."""
+def braindecode_embed(model, obs, device="cpu", standardize=True):
+    """Adapter for a braindecode / HuggingFace-style EEG foundation model (frozen). Feeds one
+    recording as `(1, n_chans, n_times)` and returns the encoder EMBEDDING (via
+    `model(x, return_features=True)` where supported, else the raw output). Per-channel
+    z-scoring by default (standard EEG-FM input convention). Requires the `[fm]` extra."""
     import torch
+    x = np.asarray(obs, dtype="float32")
+    if standardize:
+        x = (x - x.mean(1, keepdims=True)) / (x.std(1, keepdims=True) + 1e-8)
     model.eval()
-    x = torch.as_tensor(np.asarray(obs, dtype="float32"))[None]     # (1, n_ch, n_times)
+    xt = torch.as_tensor(x)[None].to(device)                        # (1, n_ch, n_times)
     with torch.no_grad():
-        out = model(x.to(device))
+        try:
+            out = model(xt, return_features=True)
+        except TypeError:
+            out = model(xt)
+    if isinstance(out, dict):                                       # {'features': ..., 'cls_token': ...}
+        out = out.get("features", out.get("cls_token", next(iter(out.values()))))
     return np.asarray(out.detach().cpu()).ravel()
