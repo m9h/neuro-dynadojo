@@ -88,6 +88,17 @@ def measurement_noise(y, snr_db, pink, rng):
     return y + sigma * nz
 
 
+def cortical_background(sens, n_times, strength, rng, n_src=40, r_src=60.0):
+    """Spatially-correlated 1/f EEG background: many random cortical dipoles each emitting
+    pink noise, projected through the lead field. Real EEG is a strong 1/f field with
+    oscillatory PEAKS on top -- this supplies the aperiodic broadband structure a foundation
+    model trained on real EEG expects. Returns (n_ch, n_times) at `strength` x unit RMS."""
+    pos = sphere_points(n_src, r_src, rng)
+    L = leadfield_radial(pos, sens)                    # (n_ch, n_src)
+    bg = L @ _pink((n_src, n_times), rng)              # spatially-correlated 1/f
+    return strength * bg / (bg.std() + 1e-12)
+
+
 def simulate_hopf(C, dist, a, omega, k, velocity, dt, T, noise, seed, fs_out=250.0):
     """Euler-Maruyama Stuart-Landau network with distance delays, integrated at `dt` (ms)
     then decimated to `fs_out` Hz. DIFFUSIVE (row-normalised) coupling keeps the term
@@ -147,6 +158,7 @@ class HopfNetworkSystem:
     r_sens: float = 90.0
     n_ch: int = 64
     montage: object = None       # real 10-20 montage (name list or preset) -> FM-fair sensor space
+    background: float = 0.0      # 1/f cortical background strength (x signal RMS); realistic EEG statistics
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
 
@@ -175,7 +187,15 @@ class HopfNetworkSystem:
     def simulate(self, seed=0):
         x = simulate_hopf(self.C, self.dist, self.a, self.omega, self.k, self.velocity,
                           self.dt, self.T, self.noise, seed, fs_out=self.fs_out)
-        obs = self.L @ x if self.space == "sensor" else (self.M @ x if self.space == "leaked" else x)
+        if self.space == "sensor":
+            obs = self.L @ x
+            if self.background:
+                obs = obs / (obs.std() + 1e-12) + cortical_background(
+                    self.sens, obs.shape[1], self.background, np.random.default_rng(4242 * seed + 7))
+        elif self.space == "leaked":
+            obs = self.M @ x
+        else:
+            obs = x
         obs = measurement_noise(obs, self.snr, self.pink, np.random.default_rng(7919 * seed + 11))
         return obs, (self.C > 0).astype(int)
 
@@ -236,6 +256,7 @@ class KuramotoNetworkSystem:
     r_sens: float = 90.0
     n_ch: int = 64
     montage: object = None       # real 10-20 montage (name list or preset) -> FM-fair sensor space
+    background: float = 0.0      # 1/f cortical background strength (x signal RMS); realistic EEG statistics
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
 
@@ -266,7 +287,15 @@ class KuramotoNetworkSystem:
     def simulate(self, seed=0):
         x = simulate_kuramoto(self.C, self.lag, self.omega, self.K, self.noise,
                               self.dt, self.T, seed, fs_out=self.fs_out)
-        obs = self.L @ x if self.space == "sensor" else (self.M @ x if self.space == "leaked" else x)
+        if self.space == "sensor":
+            obs = self.L @ x
+            if self.background:
+                obs = obs / (obs.std() + 1e-12) + cortical_background(
+                    self.sens, obs.shape[1], self.background, np.random.default_rng(4242 * seed + 7))
+        elif self.space == "leaked":
+            obs = self.M @ x
+        else:
+            obs = x
         obs = measurement_noise(obs, self.snr, self.pink, np.random.default_rng(7919 * seed + 11))
         return obs, (self.C > 0).astype(int)
 
@@ -297,6 +326,7 @@ class RingWaveSystem:
     r_sens: float = 90.0
     n_ch: int = 64
     montage: object = None       # real 10-20 montage (name list or preset) -> FM-fair sensor space
+    background: float = 0.0      # 1/f cortical background strength (x signal RMS); realistic EEG statistics
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
 
@@ -328,6 +358,14 @@ class RingWaveSystem:
     def simulate(self, seed=0):
         x = simulate_kuramoto(self.C, self.lag, self.omega, self.K, self.noise,
                               self.dt, self.T, seed, fs_out=self.fs_out)
-        obs = self.L @ x if self.space == "sensor" else (self.M @ x if self.space == "leaked" else x)
+        if self.space == "sensor":
+            obs = self.L @ x
+            if self.background:
+                obs = obs / (obs.std() + 1e-12) + cortical_background(
+                    self.sens, obs.shape[1], self.background, np.random.default_rng(4242 * seed + 7))
+        elif self.space == "leaked":
+            obs = self.M @ x
+        else:
+            obs = x
         obs = measurement_noise(obs, self.snr, self.pink, np.random.default_rng(7919 * seed + 11))
         return obs, (self.C > 0).astype(int)

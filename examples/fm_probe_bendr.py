@@ -43,18 +43,19 @@ def main():
     print("Probe: recover generative factors from SENSOR recordings (20 ch, leak 0.8, 6 dB pink).\n")
     print(f"  {'factor':14s} {'BENDR':>8s} {'baseline':>9s} {'delta':>7s}")
     for label, Sys, factor, values in FACTORS:
-        kw = dict(task="regress", n_per=8, space="sensor", leak=0.8, snr=6.0, T=T_MS, montage=MONTAGE)
+        kw = dict(task="regress", n_per=8, space="sensor", leak=0.8, snr=6.0, T=T_MS,
+                  montage=MONTAGE, background=2.0)     # realistic 1/f statistics (EEG-like input)
         rb = probe_factor(bendr, Sys, factor, values, **kw)["r"]
         rs = probe_factor(base, Sys, factor, values, **kw)["r"]
         print(f"  {label:14s} {rb:8.2f} {rs:9.2f} {rb - rs:+7.2f}")
-    print("\n  RESULT (honest): even on BENDR's EXACT pretraining montage the frozen embedding")
-    print("  trails the spectral baseline on every factor. Across montages -- random sphere,")
-    print("  generic 10-20, and this exact BENDR set -- responsiveness rises with a real montage")
-    print("  but never yields good factor recovery, and more real spatial channels (generic 20)")
-    print("  actually beat the exact 19+SCALE. So MONTAGE is not the bottleneck: the barrier is")
-    print("  SIGNAL STATISTICS -- synthetic oscillations are out-of-distribution for a model")
-    print("  trained on real EEG (1/f, artifacts, non-stationarity). That realism is the next")
-    print("  milestone; the montage infrastructure (exact channel identities) is now in place.")
+    print("\n  RESULT (honest): with BENDR's exact montage AND a realistic 1/f background")
+    print("  (background=2.0, EEG-like spectrum), the trivial spectral baseline's easy win")
+    print("  SHRINKS (clean-signal frequency ~0.9 -> ~0.45 under 1/f) and the BENDR-vs-baseline")
+    print("  gap narrows -- but by making the task harder, not by BENDR clearly encoding the")
+    print("  factors; heavy background buries the signal for everyone. So realistic statistics")
+    print("  are necessary to pose a FAIR question, and the harness now supports it -- but this")
+    print("  first re-probe does not show BENDR's frozen embedding recovering the dynamics.")
+    print("  (Numbers are noisy at this n; scale n_per/seeds for publication.)")
 
 
 if __name__ == "__main__":

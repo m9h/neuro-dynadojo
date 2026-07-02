@@ -95,12 +95,18 @@ baseline — across three montages, incl. BENDR's **exact** 19-EEG pretraining m
 On a **generic** montage BENDR's embedding is nearly *invariant* to the input (an
 **out-of-distribution collapse**, not a verdict on the model). A **real montage** lifts the
 collapse (responsiveness 0.56 → 1.06) — but even BENDR's **exact** pretraining montage does **not**
-close the gap to a trivial spectral baseline, and more real spatial channels (generic-20) beat the
-exact-19. So **the montage is not the bottleneck: the barrier is signal statistics** — synthetic
-oscillations are out-of-distribution for a model trained on real EEG (1/f, artifacts,
-non-stationarity). The eval harness and the exact-montage infrastructure are done; realistic signal
-statistics are the science ahead. Run [`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py)
-(`pip install -e .[fm,mne]`).
+close the gap, and more real spatial channels (generic-20) beat the exact-19. So the montage is not
+the bottleneck.
+
+Adding **realistic signal statistics** — a spatially-correlated **1/f cortical background**
+(`background=`, an EEG-like aperiodic spectrum with oscillatory peaks on top) — changes the picture:
+it **shrinks the trivial baseline's easy win** (clean-signal frequency ~0.90 → ~0.45 under 1/f) and
+narrows the FM-vs-baseline gap, because a spectral shortcut no longer trivially solves the task.
+But it does so by making the task *harder*, not by BENDR's frozen embedding recovering the factors —
+and heavy background buries the signal for everyone. So realistic statistics are needed to pose a
+*fair* question (and the harness now supports them), but this first re-probe does **not** show BENDR
+encoding the dynamics. Run [`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py)
+(`pip install -e .[fm,mne]`); numbers are noisy at the example's small n.
 
 ## What the benchmark shows (the honest through-line)
 
