@@ -146,6 +146,7 @@ class HopfNetworkSystem:
     r_src: float = 70.0
     r_sens: float = 90.0
     n_ch: int = 64
+    montage: object = None       # real 10-20 montage (name list or preset) -> FM-fair sensor space
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
 
@@ -154,7 +155,13 @@ class HopfNetworkSystem:
         self.C, self.labels = modular_adjacency(self.n, self.n_mod,
                                                 self.p_within, self.p_between, rng)
         self.pos = sphere_points(self.n, self.r_src, rng)
-        self.sens = sphere_points(self.n_ch, self.r_sens, rng)
+        if self.montage is not None:
+            from .montage import resolve_montage
+            self.ch_names, self.sens = resolve_montage(self.montage)
+            self.n_ch = len(self.ch_names)
+        else:
+            self.ch_names = None
+            self.sens = sphere_points(self.n_ch, self.r_sens, rng)
         self.dist = np.linalg.norm(self.pos[:, None, :] - self.pos[None, :, :], axis=2)
         self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)
@@ -228,6 +235,7 @@ class KuramotoNetworkSystem:
     r_src: float = 70.0
     r_sens: float = 90.0
     n_ch: int = 64
+    montage: object = None       # real 10-20 montage (name list or preset) -> FM-fair sensor space
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
 
@@ -236,7 +244,13 @@ class KuramotoNetworkSystem:
         self.C, self.labels = modular_adjacency(self.n, self.n_mod,
                                                 self.p_within, self.p_between, rng)
         self.pos = sphere_points(self.n, self.r_src, rng)
-        self.sens = sphere_points(self.n_ch, self.r_sens, rng)
+        if self.montage is not None:
+            from .montage import resolve_montage
+            self.ch_names, self.sens = resolve_montage(self.montage)
+            self.n_ch = len(self.ch_names)
+        else:
+            self.ch_names = None
+            self.sens = sphere_points(self.n_ch, self.r_sens, rng)
         self.dist = np.linalg.norm(self.pos[:, None, :] - self.pos[None, :, :], axis=2)
         self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)
@@ -282,6 +296,7 @@ class RingWaveSystem:
     r_src: float = 70.0
     r_sens: float = 90.0
     n_ch: int = 64
+    montage: object = None       # real 10-20 montage (name list or preset) -> FM-fair sensor space
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
 
@@ -294,7 +309,13 @@ class RingWaveSystem:
                 self.lag[i, (i + d) % self.n] = self.alpha   # ahead
                 self.lag[i, (i - d) % self.n] = -self.alpha  # behind
         self.pos = sphere_points(self.n, self.r_src, rng)    # RANDOM, decoupled from ring
-        self.sens = sphere_points(self.n_ch, self.r_sens, rng)
+        if self.montage is not None:
+            from .montage import resolve_montage
+            self.ch_names, self.sens = resolve_montage(self.montage)
+            self.n_ch = len(self.ch_names)
+        else:
+            self.ch_names = None
+            self.sens = sphere_points(self.n_ch, self.r_sens, rng)
         self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)
         self.omega = 2 * np.pi * (self.f0 + self.fsigma * rng.standard_normal(self.n)) / 1000.0

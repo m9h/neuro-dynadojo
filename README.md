@@ -79,24 +79,25 @@ and [`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py) (a **real pretrai
 
 ### First real-FM result (BENDR) — and an honest caveat
 
-Probing a frozen, pretrained **BENDR** (loaded from the HF Hub via braindecode) on our 20-ch
-synthetic sensor recordings, factor-recovery |r| vs the spectral baseline:
+Probing a frozen, pretrained **BENDR** (loaded from the HF Hub via braindecode) for the
+generative factors of our synthetic sensor recordings, factor-recovery |r| vs the spectral
+baseline — on a generic montage vs a **real 10-20 montage** (`montage="1020_20"`):
 
-| factor | BENDR | spectral baseline |
-|---|---|---|
-| frequency | 0.23 | **0.94** |
-| coupling | 0.30 | **0.95** |
-| velocity | 0.32 | **0.97** |
-| phase-lag | 0.15 | **0.57** |
+| factor | BENDR (generic) | BENDR (real 10-20) | spectral baseline |
+|---|---|---|---|
+| frequency | 0.23 | 0.59 | **0.98** |
+| coupling | 0.30 | 0.03 | **0.93** |
+| velocity | 0.32 | 0.43 | **0.97** |
+| phase-lag | 0.15 | 0.21 | **0.44** |
 
-BENDR underperforms a trivial baseline on *every* factor — but this is **not** a verdict on the
-model. A diagnostic shows its embedding is nearly **invariant** to our input (between-frequency
-shift < within-class noise, robust across input scales): the synthetic data is
-**out-of-distribution** (generic montage, synthetic signal statistics), so the pretrained
-representation barely responds. That is itself a finding — *pretrained EEG-FM embeddings do not
-transfer off-the-shelf to simulated data* — and it sets the next milestone: **realistic montages
-and signal statistics** so an FM receives in-distribution input and the mechanistic probe becomes
-fair. The harness is done; the realism is the science ahead.
+On a **generic** montage BENDR's embedding is nearly *invariant* to the input (between-class shift
+< within-class noise) — an **out-of-distribution collapse**, not a verdict on the model. Switching
+to a **real 10-20 montage** lifts that collapse (embedding-response ratio 0.56 → 1.06) and improves
+frequency/velocity recovery — so a realistic montage is **necessary**. But BENDR still trails a
+trivial spectral baseline on every factor, so it is **not sufficient**: full fairness needs BENDR's
+*exact* training montage/channel identities and realistic signal statistics (richer 1/f, artifacts).
+The harness and the montage generators are done; that realism is the science ahead. Run
+[`examples/fm_probe_bendr.py`](examples/fm_probe_bendr.py) (`pip install -e .[fm,mne]`).
 
 ## What the benchmark shows (the honest through-line)
 
