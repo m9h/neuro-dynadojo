@@ -24,7 +24,7 @@ if DEV == "cuda":
     torch.backends.cudnn.enabled = False
 SRC, CACHE = "/data/datasets/hbn-prep-mat", "/data/datasets/hbn-prep-evoked"
 SR, PRE, POST, CODES = 500, 50, 250, ("4", "8")
-N_SUBJ, MIN_TR = 40, 40                                   # subjects; min trials (both conds) per subject
+N_SUBJ, MIN_TR = int(os.environ.get("NDD_NSUBJ", 40)), 40                                   # subjects; min trials (both conds) per subject
 ZOO = {
     "BIOT":    ("InterpolatedBIOT", "braindecode/biot-pretrained-six-datasets-18chs", 200., 1000, {}, False),
     "CBraMod": ("CBraMod",          "braindecode/cbramod-pretrained", 200., 1000, {}, True),
