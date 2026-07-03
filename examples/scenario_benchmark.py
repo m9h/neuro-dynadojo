@@ -88,6 +88,16 @@ def main():
         X, y, _ = data[s]
         rows["band-power"][s] = score(bandpower(X), y)
         rows["phase-conn"][s] = score(phaseconn(X), y)
+    try:                                                     # sysid + classical dynamics contenders
+        from neurodynadojo.algorithms.dynamics import DYNAMICS
+        for name, fn in DYNAMICS.items():
+            try:
+                rows[name] = {s: score(fn(data[s][0]), data[s][1]) for s in scen}
+                print(f"[ok] {name}")
+            except Exception as e:
+                print(f"[skip] {name}: {repr(e)[:80]}")
+    except Exception as e:
+        print(f"[skip] dynamics (needs pysindy/hmmlearn): {repr(e)[:80]}")
     info = info32()
     for name, (cls, mid, sf, win, extra, lazy) in BD.items():
         try:

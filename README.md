@@ -186,15 +186,36 @@ zoo) is scored on every scenario (fmscope LP balanced accuracy, chance 0.50):
 | REVE | 1.00 | **1.00** | **1.00** | 0.67 | 0.82 |
 | LaBraM | 1.00 | 1.00 | 1.00 | 0.54 | 0.52 |
 
-No method wins everywhere, and the battery is genuinely discriminative:
-- **band-power** owns `spectral` and loses the rest; **phase-conn** owns `wave` only.
-- The **evoked** scenario is a *phase contrast with the same power spectrum* — band-power and
-  phase-connectivity are blind (0.42/0.41), but every FM except BIOT nails it (1.00): a clean
-  FM-favorable case classical *can't* touch.
-- **The FMs split into two camps.** CBraMod/REVE/LaBraM excel at *phase/waveform* structure
-  (evoked, wave) but are weak on `naturalistic`/`burst`; **BIOT is the mirror image** — it fails
-  evoked/wave but *dominates* the cross-frequency/amplitude scenarios (naturalistic 0.99, burst
-  0.98). A single-number leaderboard hides this; the battery exposes it.
+This is a **method-comparison platform, not an FM comparator** — the contenders span the whole
+neural-dynamics landscape: classical spectral/connectivity, **system-ID** (SINDy, DMD/Koopman),
+**dynamic connectivity** (DySCo), **state-space** (HMM — the osl-dynamics/DyNeMo family), and FMs.
+Adding those rows (`[sysid]` extra) shows every scenario crowns a *different method family*:
+
+| method (family) | spectral | evoked | wave | naturalistic | burst |
+|---|---|---|---|---|---|
+| band-power (spectral) | **1.00** | 0.46 | 0.51 | 0.62 | 0.56 |
+| DMD (Koopman) | 0.86 | 0.49 | 0.43 | 0.56 | 0.33 |
+| SINDy (system-ID) | 0.41 | 0.47 | **0.97** | 0.33 | 0.41 |
+| DySCo (dynamic-FC) | 0.68 | 0.54 | 0.56 | 0.59 | **0.90** |
+| HMM (state-space) | 0.48 | **0.98** | 0.59 | 0.56 | 0.63 |
+| phase-conn | 0.38 | 0.43 | **1.00** | 0.46 | 0.50 |
+| BIOT (FM) | 1.00 | 0.47 | 0.55 | **0.99** | **0.98** |
+| CBraMod (FM) | 1.00 | **1.00** | **1.00** | 0.64 | 0.86 |
+| REVE (FM) | 1.00 | **1.00** | **1.00** | 0.67 | 0.82 |
+| LaBraM (FM) | 1.00 | 1.00 | 1.00 | 0.54 | 0.52 |
+| LUNA (FM) | 1.00 | 1.00 | 0.88 | 0.72 | 0.88 |
+
+**No method family dominates — each scenario has a different winner:** `spectral`→band-power,
+`wave`→**SINDy** (system-ID recovers the governing wave dynamics) *and* phase-conn, `evoked`→**HMM**
+(state-space catches the evoked transition) *and* the phase-FMs, `burst`→**DySCo** (dynamic-FC
+catches the reconfiguration) *and* BIOT, `naturalistic`→**BIOT** (cross-frequency). And the **FMs
+themselves split**: CBraMod/REVE/LaBraM own phase/waveform structure while BIOT owns cross-frequency
+— a split a single-number leaderboard hides. This is what a netsim-style battery is *for*.
+
+`neuro-dynadojo` is also an **adversarial-development** project: the scenario suite is meant to keep
+evolving harder, more-discriminating scenarios (via `bench.adversarial_search`, and an LLM-driven
+[LLaMEA](https://github.com/XAI-liacs/LLaMEA)-style loop that mutates scenario code to maximize
+cross-method disagreement — see [`examples/llamea_evolve_scenarios.py`](examples/llamea_evolve_scenarios.py)).
 
 Each scenario is calibrated by real HBN data and maps to an HBN task (resting → spectral,
 SurroundSupp → evoked, videos → naturalistic). See

@@ -16,7 +16,8 @@ dependencies = ["numpy", "scipy", "scikit-learn"]
 
 [project.optional-dependencies]
 fm = ["torch", "braindecode"]        # bring-your-own foundation model (HuggingFace-style loading)
-mne = ["mne"]                        # real-data epoching for empirical extensions
+mne = ["mne"]
+sysid = ["pysindy", "hmmlearn"]        # SINDy + HMM (system-ID / state-space contenders)                        # real-data epoching for empirical extensions
 dev = ["pytest"]
 
 [project.urls]
