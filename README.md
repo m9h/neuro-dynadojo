@@ -145,26 +145,29 @@ scaling laws is in [`figures/`](figures/).
 
 A three-project pipeline scores foundation models on the *known* generative factors: **emeg-fm**
 (the NeuroTechX Atlas) loads the EEG-FM zoo through one montage-agnostic extractor (in its NGC
-container, braindecode 1.5.2); **neuro-dynadojo** supplies the labeled synthetic recordings;
-**fmscope** scores each frozen embedding with its canonical linear probe (`eval_seed`, balanced
-accuracy). Three real pretrained FMs, scored this way (chance = 0.50):
+container, braindecode 1.5.2; hand adapters for REVE/LaBraM); **neuro-dynadojo** supplies the labeled
+synthetic recordings; **fmscope** scores each frozen embedding with its canonical linear probe
+(`eval_seed`, balanced accuracy). Five real pretrained FMs vs band-power (chance = 0.50):
 
 | model | freq | coupling | delay | regime | phase | wavenum | mean |
 |---|---|---|---|---|---|---|---|
-| baseline (band-power) | 0.57 | 0.68 | **0.80** | 0.83 | 0.53 | 0.33 | **0.62** |
-| CBraMod | 0.43 | **0.72** | 0.54 | 0.90 | **0.60** | **0.47** | 0.61 |
-| BIOT | **0.58** | 0.62 | 0.71 | 0.88 | 0.38 | 0.34 | 0.58 |
-| LUNA | 0.55 | 0.56 | 0.51 | **0.92** | 0.52 | 0.41 | 0.58 |
+| **REVE** | **0.67** | **0.73** | **0.83** | **0.95** | **0.60** | 0.50 | **0.71** |
+| baseline (band-power) | 0.57 | 0.68 | 0.80 | 0.83 | 0.53 | 0.33 | 0.62 |
+| CBraMod | 0.43 | 0.72 | 0.54 | 0.90 | 0.60 | 0.47 | 0.61 |
+| BIOT | 0.58 | 0.62 | 0.71 | 0.88 | 0.38 | 0.34 | 0.58 |
+| LaBraM | 0.39 | 0.61 | 0.45 | 0.90 | 0.63 | **0.51** | 0.58 |
+| LUNA | 0.55 | 0.56 | 0.51 | 0.92 | 0.52 | 0.41 | 0.58 |
 
-The result is **factor-dependent**, not a flat verdict: band-power wins overall and on the *spectral*
-factors (frequency, delay — its home turf), but **every FM beats it on `regime`** (0.88–0.92 vs 0.83)
-and **CBraMod also beats it on coupling, phase-lag and wavenumber** — the dynamics/spatial factors.
-CBraMod (0.61) ties the baseline, winning 4 of 6 factors. This is the *mechanistic* form of the
-Atlas's finding — **classical wins on spectral, FMs win on dynamics** — measured against known ground
-truth. Run inside emeg-fm's container:
-[`examples/run_leaderboard_container.sh`](examples/run_leaderboard_container.sh)
-(BENDR/LaBraM need emeg-fm's per-model hand adapters). The stock-venv bridge
-[`examples/multi_fm_leaderboard.py`](examples/multi_fm_leaderboard.py) scores whatever loads directly.
+**REVE (0.71) is the standout — the one FM that clearly beats band-power (0.62), and it wins on all
+six factors, including the spectral ones (frequency, delay) where every other FM loses.** REVE is the
+Atlas's top *cognitive* FM; here it's confirmed on known mechanistic ground truth. The rest are
+factor-dependent: **every model beats band-power on `regime`** (0.88–0.95 vs 0.83), and CBraMod/LaBraM
+also beat it on the dynamics/spatial factors (coupling, phase-lag, wavenumber), while band-power holds
+the pure-spectral factors against all but REVE. This is the mechanistic form of the Atlas's finding —
+**classical wins spectral, FMs win dynamics/cognition** — with REVE the clear leader. Run inside
+emeg-fm's container: [`examples/run_leaderboard_container.sh`](examples/run_leaderboard_container.sh).
+The stock-venv bridge [`examples/multi_fm_leaderboard.py`](examples/multi_fm_leaderboard.py) scores
+whatever loads directly.
 
 ## Layout
 

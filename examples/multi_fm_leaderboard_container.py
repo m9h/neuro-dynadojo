@@ -73,6 +73,24 @@ def embed(m, cap, W, sfreq_out, win, bs=64):
     return np.concatenate(out)
 
 
+def adapter_embed(adapter, loaded, W, ch_names, sfreq_out, win, bs=64):
+    """Embed via an emeg-fm hand adapter (REVE/LaBraM/ZUNA): resample 250->sfreq_out, fit
+    `win` (None=flexible), z-score+clamp, then adapter.extract_features with its input dict."""
+    b = W.astype(np.float64)
+    if abs(250.0 - sfreq_out) > 1e-6:
+        b = resample(b, int(round(b.shape[-1] * sfreq_out / 250.0)), axis=-1)
+    if win:
+        L = b.shape[-1]
+        b = (b[..., (L - win) // 2:(L - win) // 2 + win] if L > win
+             else np.pad(b, [(0, 0), (0, 0), ((win - L) // 2, win - L - (win - L) // 2)], mode="edge"))
+    b = np.clip((b - b.mean(-1, keepdims=True)) / (b.std(-1, keepdims=True) + 1e-8), -15, 15)
+    out = []
+    for i in range(0, len(b), bs):
+        out.append(np.asarray(adapter.extract_features(
+            loaded, {"eeg": b[i:i + bs], "ch_names": list(ch_names), "electrode_names": list(ch_names)})))
+    return np.concatenate(out).reshape(len(b), -1)
+
+
 def score(feats, y):
     n = len(y)
     return float(np.mean([eval_seed(feats, np.arange(n), np.asarray(y), np.arange(n), s,
@@ -98,6 +116,20 @@ def main():
             rows[name] = {f: score(embed(m, cap, data[f][0], sf, win), data[f][1]) for f in facs}
             print(f"[ok] {name}")
             del m; torch.cuda.empty_cache()
+        except Exception as e:
+            print(f"[skip] {name}: {repr(e)[:100]}")
+    # emeg-fm hand-adapter models (REVE flexible; LaBraM 200 Hz / 3000 samp / 10-20 vocab)
+    try:
+        from emeg_fm.eeg_fm import (REVEAdapter, LaBraMAdapter, REVE_BASE_ID, LABRAM_DEFAULT_ID)
+        ADP = [("REVE", REVEAdapter, REVE_BASE_ID, 200.0, None),
+               ("LaBraM", LaBraMAdapter, LABRAM_DEFAULT_ID, 200.0, 3000)]
+    except Exception as e:
+        ADP = []; print(f"[skip] adapters unavailable: {repr(e)[:80]}")
+    for name, Acls, hf, sfo, win in ADP:
+        try:
+            ad = Acls(); loaded = ad.load_model(hf)
+            rows[name] = {f: score(adapter_embed(ad, loaded, data[f][0], CH32, sfo, win), data[f][1]) for f in facs}
+            print(f"[ok] {name}")
         except Exception as e:
             print(f"[skip] {name}: {repr(e)[:100]}")
     print(f"\n  {'model':22s} " + " ".join(f"{f[:5]:>6s}" for f in facs) + f" {'MEAN':>7s}")
