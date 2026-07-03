@@ -221,13 +221,20 @@ Two **real runs** (both saved verbatim, both reproduce):
   0.095): rediscovered — unprompted — a traveling-wave-**direction** scenario carried purely by
   cross-channel phase-lag with a *matched power spectrum* — band-power blind (AUC 0.52), system-ID
   (SINDy) reads it (0.66). A clean single-winner case.
-- **Opus, budget 30** ([`examples/evolved_scenario_opus.py`](examples/evolved_scenario_opus.py),
+- **Opus, budget 30, raw disagreement** ([`examples/evolved_scenario_opus.py`](examples/evolved_scenario_opus.py),
   fitness 0.258 — **beats the hand-tuned battery's ~0.21**): a theta–gamma PAC contrast. Opus
   climbs the objective far more effectively, but the win is *instructive*: its class-0 phase-scramble
   leaked a gamma-power confound, so band-power/DMD ace it (1.00) instead of the intended
-  nonlinearity-only methods. Raw cross-method disagreement can be gamed by an unintended easy
-  feature — motivating a confound-aware fitness (reward a *named* family's margin over a baseline it
-  must defeat). Exactly the ground-truth-design pitfall this platform exists to expose.
+  nonlinearity-only methods. Raw cross-method disagreement can be gamed by an unintended easy feature.
+- **Opus, budget 30, confound-aware (`targeted`)** ([`examples/evolved_scenario_targeted.py`](examples/evolved_scenario_targeted.py),
+  margin **+0.47**): the fix and the payoff. Fitness = margin of the best genuine-dynamics method
+  (SINDy/DySCo/HMM) over the best spectral method (band-power/DMD), so a scenario scores *only* if it
+  beats **every** spectral method. Re-run under this objective, the **same model** was forced to build
+  a genuinely spectrum-matched 6→40 Hz phase-coupling contrast — high-passing the coupled HF so no
+  envelope bleeds into the low band, renormalizing HF power, matching channel variance — so band-power
+  **and** DMD sit at chance (~0.50) while only nonlinear system-ID (SINDy) recovers it (1.00), and it
+  **generalizes to held-out seeds**. Fitness shaping turned a confound-gamed win into a legitimate
+  ground-truth scenario — the exact adversarial-design loop this platform is built for.
 
 Each scenario is calibrated by real HBN data and maps to an HBN task (resting → spectral,
 SurroundSupp → evoked, videos → naturalistic). See

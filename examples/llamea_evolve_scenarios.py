@@ -27,11 +27,23 @@ Real runs (both saved verbatim, both reproduce):
 Eval runs are wrapped in a hard SIGALRM timeout (LLaMEA's SequentialBackend ignores its own
 eval_timeout), so a pathological generated `generate()` can't hang the loop.
 
-NOTE — confound-aware fitness (documented next step): raw cross-method disagreement can be gamed
-by an UNINTENDED easy feature (the Opus run leaked gamma power into a "PAC-only" scenario). A more
-honest objective rewards the margin of a NAMED intended family over a NAMED baseline it should
-defeat, e.g. `fitness = aucs[intended] - aucs[baseline]` with a penalty when any off-target method
-also wins — turning `evaluate()` into a targeted break-this-method search rather than any-split.
+Two fitness MODES (env NDD_MODE): `disagree` = raw cross-method disagreement (std of AUC), and
+`targeted` (default) = margin of the best GENUINE-DYNAMICS method (SINDy/DySCo/HMM) over the best
+SPECTRAL method (band-power/DMD). The targeted mode is CONFOUND-AWARE: a scenario scores only if it
+beats EVERY spectral method, so a leaked power/amplitude feature is penalized rather than rewarded.
+
+  NDD_MODE=targeted NDD_MODEL=claude-opus-4-8 NDD_BUDGET=30 python examples/llamea_evolve_scenarios.py
+
+A targeted Opus run (`examples/evolved_scenario_targeted.py`, margin +0.47) is the payoff: under
+raw disagreement Opus produced a "PAC" scenario whose envelope-scramble LEAKED gamma power so
+band-power aced it; re-run under the targeted margin the SAME model was forced to build a genuinely
+spectrum-matched 6->40 Hz phase-coupling contrast (high-pass the coupled HF so no envelope bleeds
+into the low band, renormalize HF power, match channel variance) — band-power AND DMD at chance
+(~.50), only SINDy recovers it (1.00), and it generalizes to held-out seeds. Fitness shaping turned
+a confound-gamed win into a legitimate ground-truth scenario.
+
+Eval runs are wrapped in a hard SIGALRM timeout (LLaMEA's SequentialBackend ignores its own
+eval_timeout), so a pathological generated `generate()` can't hang the loop.
 """
 import os, sys, textwrap, signal, contextlib
 
@@ -92,9 +104,37 @@ def _run_scenario(code, n_per=50, seed=0):
     return X, y
 
 
+# ── fitness modes ──────────────────────────────────────────────────────────────────────────────
+# The Opus run exposed that raw cross-method disagreement is gamed by an UNINTENDED easy feature
+# (a "PAC-only" scenario whose class-0 scramble leaked gamma power → band-power aced it). The
+# targeted objective is confound-proof: reward the margin of the best GENUINE-DYNAMICS method over
+# the best SPECTRAL/AMPLITUDE method, so a scenario only scores if it beats EVERY spectral method
+# (band-power AND DMD — both leaked last time), not just one.
+SPECTRAL = ("band-power", "DMD")                          # amplitude/linear baselines that must stay near chance
+DYNAMICS_FAMILY = ("SINDy", "DySCo", "HMM")               # genuine nonlinear / state-space / dynamic-FC
+
+
+def _fitness(aucs):
+    """Return (score, mode_label, guidance). Mode from NDD_MODE: 'targeted' (default) or 'disagree'."""
+    mode = os.environ.get("NDD_MODE", "targeted")
+    if mode == "disagree":
+        return float(np.std(list(aucs.values()))), "disagreement std", (
+            "make ONE method win decisively while the others stay near chance (raises the std)")
+    best_dyn = max(DYNAMICS_FAMILY, key=lambda m: aucs.get(m, 0.5))
+    best_spec = max(SPECTRAL, key=lambda m: aucs.get(m, 0.5))
+    margin = aucs.get(best_dyn, 0.5) - aucs.get(best_spec, 0.5)
+    guidance = (f"TARGETED: a genuine-dynamics method ({best_dyn}={aucs.get(best_dyn):.2f}) must beat "
+                f"EVERY spectral/amplitude method (best spectral {best_spec}={aucs.get(best_spec):.2f}). "
+                f"margin={margin:+.2f}. To improve: keep band-power AND DMD at chance (~.50) — do NOT "
+                f"let any power/amplitude/linear feature leak the label (watch envelope scrambles, "
+                f"band-power imbalance) — while making the label readable ONLY through nonlinear phase / "
+                f"state-transition / dynamic-connectivity structure (e.g. cross-frequency phase coupling "
+                f"with matched marginal power, a state-sequence contrast, directed phase flow).")
+    return float(margin), f"dynamics-minus-spectral margin ({best_dyn}−{best_spec})", guidance
+
+
 def evaluate(individual, logger=None):
-    """LLaMEA v1.2 contract: score `individual.code`, set fitness/feedback/error, return it.
-    Fitness = cross-method disagreement (std of per-method AUC). Higher = more adversarial."""
+    """LLaMEA v1.2 contract: score `individual.code`, set fitness/feedback/error, return it."""
     try:
         with _time_limit(45):                            # cap arbitrary LLM-authored generate()
             X, y = _run_scenario(individual.code)
@@ -108,15 +148,10 @@ def evaluate(individual, logger=None):
                 aucs[name] = float(_auc(fn(X), y))
         except Exception:
             aucs[name] = 0.5
-    spread = float(np.std(list(aucs.values())))
-    best, worst = max(aucs, key=aucs.get), min(aucs, key=aucs.get)
+    score, label, guidance = _fitness(aucs)
     fb = (f"Per-method AUC (chance .50): { {k: round(v, 2) for k, v in aucs.items()} }. "
-          f"Winner={best} ({aucs[best]:.2f}); loser={worst} ({aucs[worst]:.2f}); "
-          f"disagreement std={spread:.3f}. To improve: make ONE method family win decisively "
-          f"while the others stay near chance — that raises the std. Vary the generative "
-          f"mechanism (spectral peak, evoked phase, traveling-wave direction, cross-frequency "
-          f"coupling, burst rate) so the label is visible to only one family.")
-    individual.set_scores(spread, fb, None)
+          f"{label}={score:.3f}. {guidance}")
+    individual.set_scores(score, fb, None)
     return individual
 
 
@@ -135,14 +170,17 @@ TASK_PROMPT = textwrap.dedent(f"""
       - ch_names is a list of {N_CH} channel-name strings.
     Use only numpy (imported as np). Seed all randomness from `seed` (np.random.default_rng).
 
-    The recordings are scored by a fixed zoo of methods: band-power (spectral), SINDy & DMD
-    (system-ID), DySCo (dynamic connectivity), HMM (state-space). Your goal: maximise their
-    DISAGREEMENT — craft a signal where the class label is decodable by exactly ONE family and
-    invisible to the rest (e.g. a phase/waveform contrast with identical power spectrum defeats
-    band-power; a traveling-wave DIRECTION defeats amplitude methods; a cross-frequency coupling
-    defeats linear system-ID). Add realistic spatially-correlated 1/f background so the task is
-    non-trivial, and keep channel identity FIXED across trials (a fixed sensor geometry / lead
-    field), or all methods collapse to chance.
+    The recordings are scored by a fixed zoo of methods: band-power and DMD (SPECTRAL / amplitude /
+    linear), and SINDy, DySCo, HMM (genuine DYNAMICS: nonlinear system-ID, dynamic connectivity,
+    state-space). Your goal (TARGETED): make a genuine-dynamics method decode the label while EVERY
+    spectral/amplitude method — band-power AND DMD — stays at chance (~.50). The label must live
+    ONLY in nonlinear-phase / state-transition / dynamic-connectivity structure, with MATCHED
+    marginal power between classes. Guard against leakage: any per-class difference in band power,
+    total amplitude, or channel variance hands the win to band-power/DMD and FAILS the objective (a
+    common trap: scrambling an envelope changes its power). Prefer mechanisms like cross-frequency
+    PHASE coupling with identical band powers, a hidden state-SEQUENCE contrast, or directed phase
+    flow. Add realistic spatially-correlated 1/f background, and keep channel identity FIXED across
+    trials (a fixed sensor geometry / lead field), or all methods collapse to chance.
 
     Return ONLY the class in a single ```python code block.""")
 
