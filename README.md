@@ -216,10 +216,18 @@ themselves split**: CBraMod/REVE/LaBraM own phase/waveform structure while BIOT 
 evolving harder, more-discriminating scenarios (via `bench.adversarial_search`, and an LLM-driven
 [LLaMEA](https://github.com/XAI-liacs/LLaMEA) loop that mutates scenario code to maximize
 cross-method disagreement — see [`examples/llamea_evolve_scenarios.py`](examples/llamea_evolve_scenarios.py)).
-A **real run** (Claude backend, `(1+1)` evolution, budget 12) rediscovered — unprompted — a
-traveling-wave-**direction** scenario carried purely by cross-channel phase-lag with a *matched
-power spectrum*: band-power blind (AUC 0.52), system-ID (SINDy) reads it (0.66). The evolved
-champion is saved verbatim in [`examples/evolved_scenario.py`](examples/evolved_scenario.py).
+Two **real runs** (both saved verbatim, both reproduce):
+- **sonnet, budget 12** ([`examples/evolved_scenario.py`](examples/evolved_scenario.py), fitness
+  0.095): rediscovered — unprompted — a traveling-wave-**direction** scenario carried purely by
+  cross-channel phase-lag with a *matched power spectrum* — band-power blind (AUC 0.52), system-ID
+  (SINDy) reads it (0.66). A clean single-winner case.
+- **Opus, budget 30** ([`examples/evolved_scenario_opus.py`](examples/evolved_scenario_opus.py),
+  fitness 0.258 — **beats the hand-tuned battery's ~0.21**): a theta–gamma PAC contrast. Opus
+  climbs the objective far more effectively, but the win is *instructive*: its class-0 phase-scramble
+  leaked a gamma-power confound, so band-power/DMD ace it (1.00) instead of the intended
+  nonlinearity-only methods. Raw cross-method disagreement can be gamed by an unintended easy
+  feature — motivating a confound-aware fitness (reward a *named* family's margin over a baseline it
+  must defeat). Exactly the ground-truth-design pitfall this platform exists to expose.
 
 Each scenario is calibrated by real HBN data and maps to an HBN task (resting → spectral,
 SurroundSupp → evoked, videos → naturalistic). See

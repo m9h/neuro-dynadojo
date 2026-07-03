@@ -15,12 +15,23 @@ runs on ANTHROPIC_API_KEY. Requires: pip install llamea anthropic.
   python examples/llamea_evolve_scenarios.py            # real (1+1) evolution, Claude backend
   NDD_BUDGET=8 NDD_OUT=winner.py python examples/llamea_evolve_scenarios.py
 
-A REAL run (claude-sonnet-5, budget=12, seed 0) converged on a traveling-wave-DIRECTION scenario
-carried purely by cross-channel phase-lag with a matched power spectrum: band-power blind (AUC
-0.52) while system-ID (SINDy) reads it (0.66). That champion is saved verbatim in
-`examples/evolved_scenario.py` — the LLM rediscovered, unprompted, why spectral methods can't see
-propagation direction. Eval runs are wrapped in a hard SIGALRM timeout (LLaMEA's SequentialBackend
-ignores its own eval_timeout), so a pathological generated `generate()` can't hang the loop.
+Real runs (both saved verbatim, both reproduce):
+  - claude-sonnet-5, budget 12  -> `examples/evolved_scenario.py`  (fitness 0.095): a traveling-
+    wave-DIRECTION scenario carried purely by cross-channel phase-lag with a matched power
+    spectrum — band-power blind (AUC 0.52), SINDy reads it (0.66). Clean single-winner.
+  - claude-opus-4-8, budget 30  -> `examples/evolved_scenario_opus.py` (fitness 0.258, BEATS the
+    hand-tuned battery's ~0.21): a theta-gamma PAC contrast. Opus climbs the objective far better,
+    but the win exposes a lesson — its class-0 phase-scramble leaked a gamma-power confound, so
+    band-power/DMD ace it (1.00) rather than the intended nonlinearity-only methods. See below.
+
+Eval runs are wrapped in a hard SIGALRM timeout (LLaMEA's SequentialBackend ignores its own
+eval_timeout), so a pathological generated `generate()` can't hang the loop.
+
+NOTE — confound-aware fitness (documented next step): raw cross-method disagreement can be gamed
+by an UNINTENDED easy feature (the Opus run leaked gamma power into a "PAC-only" scenario). A more
+honest objective rewards the margin of a NAMED intended family over a NAMED baseline it should
+defeat, e.g. `fitness = aucs[intended] - aucs[baseline]` with a penalty when any off-target method
+also wins — turning `evaluate()` into a targeted break-this-method search rather than any-split.
 """
 import os, sys, textwrap, signal, contextlib
 
