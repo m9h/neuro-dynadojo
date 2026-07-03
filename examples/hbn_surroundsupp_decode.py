@@ -25,7 +25,7 @@ if DEV == "cuda":
 SRC, CACHE = "/data/datasets/hbn-prep-mat", "/data/datasets/hbn-prep-evoked"
 SR, PRE, POST, CODES = 500, 50, 250, ("4", "8")
 N_SUBJ, MIN_TR = int(os.environ.get("NDD_NSUBJ", 40)), 40                                   # subjects; min trials (both conds) per subject
-ZOO = {
+ZOO = {} if os.environ.get("NDD_SKIP_ZOO") else {
     "BIOT":    ("InterpolatedBIOT", "braindecode/biot-pretrained-six-datasets-18chs", 200., 1000, {}, False),
     "CBraMod": ("CBraMod",          "braindecode/cbramod-pretrained", 200., 1000, {}, True),
     "LUNA":    ("LUNA",             "PulpBio/LUNA", 200., 1000, {"filename": "LUNA_base.safetensors"}, True),
@@ -73,6 +73,18 @@ def embed(m, cap, X, win, bs=256):
     return np.concatenate(out)
 
 
+def adapter_embed(adapter, loaded, X, ch_names, sfreq_out=200.0, bs=256):
+    """Embed HBN trials via an emeg-fm hand adapter (REVE, montage-flexible)."""
+    b = resample(X.astype(np.float64), int(round(X.shape[-1] * sfreq_out / SR)), axis=-1)
+    b = np.clip((b - b.mean(-1, keepdims=True)) / (b.std(-1, keepdims=True) + 1e-8), -15, 15)
+    out = []
+    for i in range(0, len(b), bs):
+        out.append(np.asarray(adapter.extract_features(
+            loaded, {"eeg": b[i:i + bs], "ch_names": list(ch_names),
+                     "electrode_names": list(ch_names)})).reshape(len(b[i:i + bs]), -1))
+    return np.concatenate(out)
+
+
 def bandpower(X, fs=500., bands=((1, 4), (4, 8), (8, 13), (13, 30), (30, 45))):
     f, P = welch(X.astype(np.float64), fs=fs, nperseg=min(256, X.shape[-1]), axis=-1)
     return np.concatenate([np.log(P[:, :, (f >= lo) & (f < hi)].mean(-1) + 1e-20) for lo, hi in bands], 1)
@@ -115,6 +127,13 @@ def main():
             del m; torch.cuda.empty_cache()
         except Exception as e:
             print(f"[skip] {name}: {repr(e)[:100]}")
+    try:                                                     # REVE (montage-flexible, Atlas's top cognitive FM)
+        from emeg_fm.eeg_fm import REVEAdapter, REVE_BASE_ID
+        ad = REVEAdapter(); loaded = ad.load_model(REVE_BASE_ID)
+        a, n = within_subj_auc(adapter_embed(ad, loaded, X, names), y, sid); rows["REVE"] = a
+        print("[ok] REVE")
+    except Exception as e:
+        print(f"[skip] REVE: {repr(e)[:120]}")
     print(f"\n  {'model':22s} {'within-subj cond-decode AUC':>28s}")
     for k in sorted(rows, key=lambda k: -rows[k]):
         print(f"  {k:22s} {rows[k]:28.3f}")
