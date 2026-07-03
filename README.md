@@ -169,6 +169,38 @@ emeg-fm's container: [`examples/run_leaderboard_container.sh`](examples/run_lead
 The stock-venv bridge [`examples/multi_fm_leaderboard.py`](examples/multi_fm_leaderboard.py) scores
 whatever loads directly.
 
+### HBN-grounded scenario battery (netsim for the EEG-FM era)
+
+As HCP's connectome grounded FSLNets/netsim, real **HBN** statistics (1/f exponent −1.13, evoked
+latency ~0.28 s, band structure) ground a battery of simulation scenarios — each modeled on an HBN
+task regime and *engineered so a different method family wins*. Every method (classical + the FM
+zoo) is scored on every scenario (fmscope LP balanced accuracy, chance 0.50):
+
+| method | spectral | evoked | wave | naturalistic | burst |
+|---|---|---|---|---|---|
+| band-power | **1.00** | 0.42 | 0.50 | 0.61 | 0.47 |
+| phase-conn | 0.66 | 0.41 | **1.00** | 0.49 | 0.46 |
+| BIOT | 1.00 | 0.47 | 0.55 | **0.99** | **0.98** |
+| CBraMod | 1.00 | 1.00 | 1.00 | 0.64 | 0.86 |
+| LUNA | 1.00 | 1.00 | 0.88 | 0.72 | 0.88 |
+| REVE | 1.00 | **1.00** | **1.00** | 0.67 | 0.82 |
+| LaBraM | 1.00 | 1.00 | 1.00 | 0.54 | 0.52 |
+
+No method wins everywhere, and the battery is genuinely discriminative:
+- **band-power** owns `spectral` and loses the rest; **phase-conn** owns `wave` only.
+- The **evoked** scenario is a *phase contrast with the same power spectrum* — band-power and
+  phase-connectivity are blind (0.42/0.41), but every FM except BIOT nails it (1.00): a clean
+  FM-favorable case classical *can't* touch.
+- **The FMs split into two camps.** CBraMod/REVE/LaBraM excel at *phase/waveform* structure
+  (evoked, wave) but are weak on `naturalistic`/`burst`; **BIOT is the mirror image** — it fails
+  evoked/wave but *dominates* the cross-frequency/amplitude scenarios (naturalistic 0.99, burst
+  0.98). A single-number leaderboard hides this; the battery exposes it.
+
+Each scenario is calibrated by real HBN data and maps to an HBN task (resting → spectral,
+SurroundSupp → evoked, videos → naturalistic). See
+[`src/neurodynadojo/scenarios.py`](src/neurodynadojo/scenarios.py) and
+[`examples/scenario_benchmark.py`](examples/scenario_benchmark.py).
+
 ## Layout
 
 ```
