@@ -37,3 +37,13 @@ def test_sindy_wave_and_hmm_evoked():
     Xe, ye, _ = SCENARIOS["evoked"](40, 0)
     assert _auc(sindy_features(Xw), yw) > 0.7      # sysid recovers wave dynamics
     assert _auc(hmm_features(Xe), ye) > 0.7        # state-space recovers evoked transition
+
+
+def test_cfc_pac_is_spectral_blind_but_sindy_reads_it():
+    """The LLaMEA-evolved PAC scenario: nonlinear system-ID recovers the gating-phase label while
+    band-power stays at chance (matched marginal power) — the confound-aware target it was bred for."""
+    from neurodynadojo.probes import bandpower_embed
+    X, y, _ = SCENARIOS["cfc_pac"](40, 0)
+    bp = np.stack([bandpower_embed(x, fs=250.0) for x in X])
+    assert _auc(sindy_features(X), y) > 0.85       # SINDy reads the cross-frequency phase coupling
+    assert _auc(bp, y) < 0.65                       # band-power is blind (power spectrum matched)

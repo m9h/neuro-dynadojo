@@ -236,6 +236,13 @@ Two **real runs** (both saved verbatim, both reproduce):
   **generalizes to held-out seeds**. Fitness shaping turned a confound-gamed win into a legitimate
   ground-truth scenario — the exact adversarial-design loop this platform is built for.
 
+That evolved scenario is now a **first-class battery row**, folded into `scenarios.py` as `cfc_pac`
+(a 6th scenario alongside the five above) with its anti-leakage controls preserved. Through the
+battery's physical lead field it keeps the bred-for profile — SINDy 0.97, band-power 0.53, DMD 0.58,
+DySCo 0.51, HMM 0.60 (n=40, seed 0) — a benchmark case the platform *discovered about itself* rather
+than one a human hand-designed. (FM columns fill in when `scenario_benchmark.py` is re-run in the
+container.)
+
 Each scenario is calibrated by real HBN data and maps to an HBN task (resting → spectral,
 SurroundSupp → evoked, videos → naturalistic). See
 [`src/neurodynadojo/scenarios.py`](src/neurodynadojo/scenarios.py) and

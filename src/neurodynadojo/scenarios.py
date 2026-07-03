@@ -12,6 +12,10 @@ engineered so a DIFFERENT method family wins — the whole point of a benchmark 
   wave          a directed traveling wave; the label is its DIRECTION                -> phase / directed
   naturalistic  a slow latent driving cross-frequency multiband coupling             -> foundation models
   burst         intermittent gamma bursts; the label is the burst RATE               -> band-power / FMs
+  cfc_pac       PAC whose GATING PHASE is the label, matched marginal power           -> system-ID (SINDy)
+
+The `cfc_pac` scenario was DISCOVERED by the repo's own LLaMEA confound-aware evolution loop
+(examples/), not hand-designed — a benchmark row bred to defeat every spectral/amplitude method.
 
 Each `scenario(n_per, seed)` returns (X (2*n_per, n_ch, T), y (2*n_per,), ch_names). The
 sensor montage is FIXED across recordings (channel identity is stable); only the sources and
@@ -134,5 +138,38 @@ def burst(n_per, seed):
     return _stack(recs, rng)
 
 
+def cfc_pac(n_per, seed):
+    """Cross-frequency phase-amplitude coupling whose GATING PHASE (0 vs pi) is the label, with
+    MATCHED marginal power in both bands -> only nonlinear system-ID (SINDy) reads it; band-power
+    AND DMD are blind. Unlike `naturalistic` (coupling present vs absent, an amplitude cue FMs
+    win), here both classes have identical 6 Hz and 40 Hz power and differ only in WHICH 6 Hz
+    phase the 40 Hz burst is gated to. Discovered by the LLaMEA confound-aware targeted run
+    (examples/evolved_scenario_targeted.py); folded in with the anti-leakage controls that keep
+    the spectral methods at chance: high-pass the gated HF so no slow envelope bleeds into the low
+    band, renormalise HF power, and match per-channel variance."""
+    rng = np.random.default_rng(seed); sens = _fixed_sensors(seed); t = np.arange(T) / FS
+    src_lo = sphere_points(3, 60.0, np.random.default_rng(7000 + seed))          # fixed lo topography
+    src_hi = sphere_points(3, 60.0, np.random.default_rng(7500 + seed))          # fixed hi topography
+    f = np.fft.rfftfreq(T, 1 / FS); f[0] = f[1]
+    recs = []
+    for lab in (0, 1):
+        cphase = 0.0 if lab == 0 else np.pi                                      # gating-phase = label
+        for _ in range(n_per):
+            ph0 = rng.uniform(0, 6.28)
+            lo = np.sin(2 * np.pi * 6 * t + ph0)
+            gate = (0.5 * (1 + np.cos(2 * np.pi * 6 * t + ph0 - cphase))) ** 4    # sharp phase gate
+            hi = gate * np.sin(2 * np.pi * 40 * t + rng.uniform(0, 6.28))
+            Hi = np.fft.rfft(hi); Hi[f < 20] = 0                                 # kill low-band leakage
+            hi = np.fft.irfft(Hi, n=T); hi = hi / (hi.std() + 1e-9)             # renormalise HF power
+            lo = lo / (lo.std() + 1e-9)
+            S_lo = lo[None, :] * (1 + 0.1 * rng.standard_normal((3, 1)))
+            S_hi = hi[None, :] * (1 + 0.1 * rng.standard_normal((3, 1)))
+            x = (_project(sens, src_lo, S_lo, 1.0) + _project(sens, src_hi, S_hi, 1.0) +
+                 _bg_field(sens, T, 0.6, rng))
+            x = x / (x.std(1, keepdims=True) + 1e-9)                            # match channel variance
+            recs.append((x, lab))
+    return _stack(recs, rng)
+
+
 SCENARIOS = {"spectral": spectral, "evoked": evoked, "wave": wave,
-             "naturalistic": naturalistic, "burst": burst}
+             "naturalistic": naturalistic, "burst": burst, "cfc_pac": cfc_pac}
