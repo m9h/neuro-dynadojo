@@ -18,6 +18,7 @@ dependencies = ["numpy", "scipy", "scikit-learn"]
 fm = ["torch", "braindecode"]        # bring-your-own foundation model (HuggingFace-style loading)
 mne = ["mne"]
 sysid = ["pysindy", "hmmlearn"]        # SINDy + HMM (system-ID / state-space contenders)
+latent = ["cebra"]        # CEBRA contrastive latent-embedding contender (osl-dynamics TDE-HMM runs in the oracle-osl container)
 llm = ["llamea", "anthropic"]        # LLaMEA adversarial scenario evolution (examples/llamea_evolve_scenarios.py)
 dev = ["pytest"]
 
