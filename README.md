@@ -188,29 +188,46 @@ zoo) is scored on every scenario (fmscope LP balanced accuracy, chance 0.50):
 
 This is a **method-comparison platform, not an FM comparator** — the contenders span the whole
 neural-dynamics landscape: classical spectral/connectivity, **system-ID** (SINDy, DMD/Koopman),
-**dynamic connectivity** (DySCo), **state-space** (HMM — the osl-dynamics/DyNeMo family), and FMs.
-Adding those rows (`[sysid]` extra) shows every scenario crowns a *different method family*:
+**dynamic connectivity** (DySCo), **state-space** (a lightweight Gaussian HMM *and* osl-dynamics'
+proper **TDE-HMM**), **latent embedding** (CEBRA), and the FM zoo. Every scenario crowns a
+*different* winner (chance = 0.50; **bold** = clear winner(s)):
 
-| method (family) | spectral | evoked | wave | naturalistic | burst |
-|---|---|---|---|---|---|
-| band-power (spectral) | **1.00** | 0.46 | 0.51 | 0.62 | 0.56 |
-| DMD (Koopman) | 0.86 | 0.49 | 0.43 | 0.56 | 0.33 |
-| SINDy (system-ID) | 0.41 | 0.47 | **0.97** | 0.33 | 0.41 |
-| DySCo (dynamic-FC) | 0.68 | 0.54 | 0.56 | 0.59 | **0.90** |
-| HMM (state-space) | 0.48 | **0.98** | 0.59 | 0.56 | 0.63 |
-| phase-conn | 0.38 | 0.43 | **1.00** | 0.46 | 0.50 |
-| BIOT (FM) | 1.00 | 0.47 | 0.55 | **0.99** | **0.98** |
-| CBraMod (FM) | 1.00 | **1.00** | **1.00** | 0.64 | 0.86 |
-| REVE (FM) | 1.00 | **1.00** | **1.00** | 0.67 | 0.82 |
-| LaBraM (FM) | 1.00 | 1.00 | 1.00 | 0.54 | 0.52 |
-| LUNA (FM) | 1.00 | 1.00 | 0.88 | 0.72 | 0.88 |
+| method (family) | spectral | evoked | wave | naturalistic | burst | cfc_pac |
+|---|---|---|---|---|---|---|
+| band-power (spectral) | **1.00** | 0.46 | 0.51 | 0.62 | 0.56 | 0.57 |
+| DMD (Koopman) | 0.86 | 0.49 | 0.43 | 0.56 | 0.33 | 0.52 |
+| SINDy (system-ID) | 0.41 | 0.47 | **0.97** | 0.33 | 0.41 | **0.97** |
+| DySCo (dynamic-FC) | 0.68 | 0.54 | 0.56 | 0.59 | **0.90** | 0.53 |
+| HMM (state-space, hmmlearn) | 0.48 | **0.98** | 0.59 | 0.56 | 0.63 | 0.61 |
+| **osl-dynamics TDE-HMM** (state-space) ‡ | **1.00** | 0.74 | **1.00** | 0.69 | **1.00** | 0.60 |
+| CEBRA (latent embedding) | 0.89 | 0.55 | **1.00** | 0.48 | **0.96** | **0.91** |
+| phase-conn † | 0.66 | 0.41 | **1.00** | 0.49 | 0.46 | 0.55 |
+| BIOT (FM) † | 1.00 | 0.47 | 0.55 | **0.99** | **0.98** | 0.51 |
+| CBraMod (FM) † | 1.00 | **1.00** | **1.00** | 0.64 | 0.86 | 0.52 |
+| REVE (FM) † | 1.00 | **1.00** | **1.00** | 0.67 | 0.82 | 0.48 |
+| LaBraM (FM) † | 1.00 | **1.00** | **1.00** | 0.54 | 0.52 | 0.66 |
+| LUNA (FM) † | 1.00 | **1.00** | 0.88 | 0.72 | 0.88 | 0.47 |
 
-**No method family dominates — each scenario has a different winner:** `spectral`→band-power,
-`wave`→**SINDy** (system-ID recovers the governing wave dynamics) *and* phase-conn, `evoked`→**HMM**
-(state-space catches the evoked transition) *and* the phase-FMs, `burst`→**DySCo** (dynamic-FC
-catches the reconfiguration) *and* BIOT, `naturalistic`→**BIOT** (cross-frequency). And the **FMs
-themselves split**: CBraMod/REVE/LaBraM own phase/waveform structure while BIOT owns cross-frequency
-— a split a single-number leaderboard hides. This is what a netsim-style battery is *for*.
+<sub>Classical / system-ID / state-space / latent rows: cross-validated LogReg **AUC**, n=60. † FM-zoo
+rows (and phase-conn): fmscope balanced-accuracy linear probe, n=60 — same chance level, and the
+band-power/DMD/DySCo columns agree across both scorers within ~0.05, so columns are comparable.
+‡ osl-dynamics TDE-HMM: n=40, in the `neurojax/oracle-osl` container.</sub>
+
+**No method family dominates — every scenario has a different winner, and the two new contenders
+reshape the picture:**
+- `spectral`→band-power / **osl-TDE-HMM**; `evoked`→**HMM** & the phase-FMs; `wave`→**SINDy**,
+  **CEBRA**, phase-conn, osl-TDE-HMM & phase-FMs; `naturalistic`→**BIOT**; `burst`→**DySCo**, **CEBRA**,
+  **osl-TDE-HMM** & BIOT.
+- **`cfc_pac` — the LLaMEA-evolved scenario — defeats every foundation model** (BIOT 0.51, CBraMod
+  0.52, LUNA 0.47, REVE 0.48, LaBraM 0.66) *and* every spectral/FC method. Only nonlinear system-ID
+  (**SINDy 0.97**) and contrastive latent embedding (**CEBRA 0.91**) read it. The platform bred a
+  genuine blind spot for the entire EEG-FM zoo.
+- **The state-space stand-in undersold its family.** A plain Gaussian HMM (hmmlearn) scores
+  0.48/0.59/0.63 on spectral/wave/burst; osl-dynamics' proper **TDE-HMM** scores **1.00/1.00/1.00** —
+  time-delay embedding is what lets the state model see spectral and cross-channel phase structure.
+  Using the right implementation, not just the right family, moves the result.
+- And the **FMs still split**: CBraMod/REVE/LaBraM own phase/waveform structure while BIOT owns
+  cross-frequency — a split a single-number leaderboard hides. This is what a netsim battery is *for*.
 
 `neuro-dynadojo` is also an **adversarial-development** project: the scenario suite is meant to keep
 evolving harder, more-discriminating scenarios (via `bench.adversarial_search`, and an LLM-driven
@@ -236,12 +253,11 @@ Two **real runs** (both saved verbatim, both reproduce):
   **generalizes to held-out seeds**. Fitness shaping turned a confound-gamed win into a legitimate
   ground-truth scenario — the exact adversarial-design loop this platform is built for.
 
-That evolved scenario is now a **first-class battery row**, folded into `scenarios.py` as `cfc_pac`
-(a 6th scenario alongside the five above) with its anti-leakage controls preserved. Through the
-battery's physical lead field it keeps the bred-for profile — SINDy 0.97, band-power 0.53, DMD 0.58,
-DySCo 0.51, HMM 0.60 (n=40, seed 0) — a benchmark case the platform *discovered about itself* rather
-than one a human hand-designed. (FM columns fill in when `scenario_benchmark.py` is re-run in the
-container.)
+That evolved scenario is now a **first-class battery row** (the `cfc_pac` column above), folded into
+`scenarios.py` with its anti-leakage controls preserved. It is a benchmark case the platform
+*discovered about itself* — and, run against the full zoo, it turned out to defeat **every** EEG-FM
+(0.47–0.66) and every spectral/FC method, cracked only by SINDy (0.97) and CEBRA (0.91). A blind
+spot for foundation models, bred by the platform's own evolution loop.
 
 Each scenario is calibrated by real HBN data and maps to an HBN task (resting → spectral,
 SurroundSupp → evoked, videos → naturalistic). See
