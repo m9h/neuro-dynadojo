@@ -17,7 +17,8 @@ dependencies = ["numpy", "scipy", "scikit-learn"]
 [project.optional-dependencies]
 fm = ["torch", "braindecode"]        # bring-your-own foundation model (HuggingFace-style loading)
 mne = ["mne"]
-sysid = ["pysindy", "hmmlearn"]        # SINDy + HMM (system-ID / state-space contenders)                        # real-data epoching for empirical extensions
+sysid = ["pysindy", "hmmlearn"]        # SINDy + HMM (system-ID / state-space contenders)
+llm = ["llamea", "anthropic"]        # LLaMEA adversarial scenario evolution (examples/llamea_evolve_scenarios.py)
 dev = ["pytest"]
 
 [project.urls]

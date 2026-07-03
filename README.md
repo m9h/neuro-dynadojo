@@ -214,8 +214,12 @@ themselves split**: CBraMod/REVE/LaBraM own phase/waveform structure while BIOT 
 
 `neuro-dynadojo` is also an **adversarial-development** project: the scenario suite is meant to keep
 evolving harder, more-discriminating scenarios (via `bench.adversarial_search`, and an LLM-driven
-[LLaMEA](https://github.com/XAI-liacs/LLaMEA)-style loop that mutates scenario code to maximize
+[LLaMEA](https://github.com/XAI-liacs/LLaMEA) loop that mutates scenario code to maximize
 cross-method disagreement — see [`examples/llamea_evolve_scenarios.py`](examples/llamea_evolve_scenarios.py)).
+A **real run** (Claude backend, `(1+1)` evolution, budget 12) rediscovered — unprompted — a
+traveling-wave-**direction** scenario carried purely by cross-channel phase-lag with a *matched
+power spectrum*: band-power blind (AUC 0.52), system-ID (SINDy) reads it (0.66). The evolved
+champion is saved verbatim in [`examples/evolved_scenario.py`](examples/evolved_scenario.py).
 
 Each scenario is calibrated by real HBN data and maps to an HBN task (resting → spectral,
 SurroundSupp → evoked, videos → naturalistic). See
