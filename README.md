@@ -13,6 +13,8 @@ traveling waves, and foundation-model probing — under realistic sensor confoun
 > reproduction tiers, environment provenance, and negative controls.
 > &nbsp;·&nbsp; 💬 **[Response to an independent review →](docs/REVIEW_RESPONSE.md)** — point-by-point,
 > including a 3-shell-forward-model robustness check confirming the `cfc_pac` result survives.
+> &nbsp;·&nbsp; ✉️ **[Reply to the reviewer →](REPLY_TO_REVIEW.md)** — our plan for what to build
+> next, in direct response to (and independent of) the review.
 
 ![Netsim confound battery and SNR scaling: no method wins across confounds](figures/preview.png)
 

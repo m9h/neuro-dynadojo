@@ -144,4 +144,6 @@ result.
   follow-up, now that the robustness-to-forward-model question is answered.
 
 We thank the reviewer. The critiques materially improved the rigor of the claims, and the two code
-contributions are merged with attribution in the commit history.
+contributions are merged with attribution in the commit history. Our reply, including a forward
+plan for what we build next in response to (and independent of) this review, is in
+[`../REPLY_TO_REVIEW.md`](../REPLY_TO_REVIEW.md).
