@@ -81,6 +81,68 @@ def leadfield_3shell(src_pos, sens_pos, g=(0.43, 0.45, 0.12), mu=(0.93, 0.77, 0.
     return np.stack(cols, 1)
 
 
+def leadfield_bem(src_pos, sens_pos):
+    """Lead field (n_ch, n_src) using a realistic BEM (Boundary Element Method) head model
+    computed via MNE-Python's fsaverage template. Requires the [mne] extra."""
+    import os
+    try:
+        import mne
+        from mne.datasets import fetch_fsaverage
+    except ImportError:
+        raise ImportError("MNE-Python is required for the BEM head model: pip install mne")
+
+    try:
+        fs_dir = fetch_fsaverage(verbose=False)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to fetch fsaverage BEM template files. BEM requires internet access "
+            f"to download the template on its first run: {e}"
+        )
+
+    bem_sol = os.path.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
+    
+    # Scale from mm to meters for MNE
+    src_pos_m = src_pos / 1000.0
+    sens_pos_m = sens_pos / 1000.0
+    
+    # Custom discrete source space with radial dipole orientations
+    ori = src_pos_m / (np.linalg.norm(src_pos_m, axis=1, keepdims=True) + 1e-12)
+    pos_dict = {'rr': src_pos_m, 'nn': ori}
+    
+    src = mne.setup_volume_source_space(
+        subject=None,
+        pos=pos_dict,
+        mri=None,
+        verbose=False
+    )
+    
+    ch_names = [f"EEG{i+1:03d}" for i in range(len(sens_pos))]
+    info = mne.create_info(ch_names=ch_names, sfreq=250.0, ch_types='eeg')
+    
+    ch_pos = {name: p for name, p in zip(ch_names, sens_pos_m)}
+    montage = mne.channels.make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+    info.set_montage(montage)
+    
+    fwd = mne.make_forward_solution(
+        info=info,
+        trans='fsaverage',
+        src=src,
+        bem=bem_sol,
+        meg=False,
+        eeg=True,
+        mindist=0.0,
+        verbose=False
+    )
+    
+    fwd_fixed = mne.convert_forward_solution(fwd, force_fixed=True, use_cps=False, verbose=False)
+    
+    # Build robustly to handle any excluded source points
+    leadfield_full = np.zeros((len(sens_pos), len(src_pos)))
+    kept_indices = fwd_fixed['src'][0]['vertno']
+    leadfield_full[:, kept_indices] = fwd_fixed['sol']['data']
+    return leadfield_full
+
+
 def leakage_matrix(L, strength):
     """Zero-lag source-leakage mixing M (n_src,n_src): y = M @ x. Off-diagonal =
     lead-field topography overlap (point-spread / cross-talk), scaled by `strength`.
@@ -227,8 +289,11 @@ class HopfNetworkSystem:
             self.ch_names = None
             self.sens = sphere_points(self.n_ch, self.r_sens, rng)
         self.dist = np.linalg.norm(self.pos[:, None, :] - self.pos[None, :, :], axis=2)
-        if getattr(self, "leadfield", "radial") == "3shell":
+        lf = getattr(self, "leadfield", "radial")
+        if lf == "3shell":
             self.L = leadfield_3shell(self.pos, self.sens)
+        elif lf == "bem":
+            self.L = leadfield_bem(self.pos, self.sens)
         else:
             self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)
@@ -330,8 +395,11 @@ class KuramotoNetworkSystem:
             self.ch_names = None
             self.sens = sphere_points(self.n_ch, self.r_sens, rng)
         self.dist = np.linalg.norm(self.pos[:, None, :] - self.pos[None, :, :], axis=2)
-        if getattr(self, "leadfield", "radial") == "3shell":
+        lf = getattr(self, "leadfield", "radial")
+        if lf == "3shell":
             self.L = leadfield_3shell(self.pos, self.sens)
+        elif lf == "bem":
+            self.L = leadfield_bem(self.pos, self.sens)
         else:
             self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)
@@ -407,8 +475,11 @@ class RingWaveSystem:
         else:
             self.ch_names = None
             self.sens = sphere_points(self.n_ch, self.r_sens, rng)
-        if getattr(self, "leadfield", "radial") == "3shell":
+        lf = getattr(self, "leadfield", "radial")
+        if lf == "3shell":
             self.L = leadfield_3shell(self.pos, self.sens)
+        elif lf == "bem":
+            self.L = leadfield_bem(self.pos, self.sens)
         else:
             self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)

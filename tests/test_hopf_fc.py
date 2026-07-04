@@ -94,6 +94,25 @@ def test_leadfield_3shell_selection():
     assert np.all(np.isfinite(x))
 
 
+def test_leadfield_bem_selection():
+    """Verify that leadfield='bem' selects the MNE-Python fsaverage BEM template model and simulates successfully."""
+    import pytest
+    mne = pytest.importorskip("mne")
+    
+    # Try fetching fsaverage; if it fails (due to no internet / no cache), skip the test gracefully
+    try:
+        mne.datasets.fetch_fsaverage(verbose=False)
+    except Exception:
+        pytest.skip("fsaverage BEM template files not available or offline")
+
+    sys_radial = HopfNetworkSystem(leadfield="radial", T=500.0)
+    sys_bem = HopfNetworkSystem(leadfield="bem", T=500.0)
+    assert sys_radial.L.shape == sys_bem.L.shape
+    assert not np.allclose(sys_radial.L, sys_bem.L)
+    x, _ = sys_bem.simulate(seed=0)
+    assert np.all(np.isfinite(x))
+
+
 def test_distance_dependent_wiring_shortens_connections():
     """wiring_length>0 embeds the connectome spatially: connected node pairs are closer on
     average than under position-independent (netsim-default) wiring. Addresses the reviewer's

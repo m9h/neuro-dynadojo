@@ -27,15 +27,18 @@ import os
 
 import numpy as np
 
-from .generators.hopf import sphere_points, leadfield_radial, leadfield_3shell, _pink
+from .generators.hopf import sphere_points, leadfield_radial, leadfield_3shell, leadfield_bem, _pink
 
 
 def _leadfield(src_pos, sens_pos):
     """Forward model for the battery. Defaults to the infinite-medium radial lead field; set
-    NDD_LEADFIELD=3shell to use the Berg-Scherg 3-shell model (skull spatial-smearing) — a
-    robustness knob for the volume-conduction critique. Every scenario routes through this."""
-    if os.environ.get("NDD_LEADFIELD", "radial") == "3shell":
+    NDD_LEADFIELD=3shell to use the Berg-Scherg 3-shell model (skull spatial-smearing), or
+    NDD_LEADFIELD=bem to use MNE-Python's fsaverage BEM template model. Every scenario routes through this."""
+    lf = os.environ.get("NDD_LEADFIELD", "radial")
+    if lf == "3shell":
         return leadfield_3shell(src_pos, sens_pos)
+    elif lf == "bem":
+        return leadfield_bem(src_pos, sens_pos)
     return leadfield_radial(src_pos, sens_pos)
 
 CH32 = ["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8", "FC5", "FC1", "FC2", "FC6", "T7", "C3",

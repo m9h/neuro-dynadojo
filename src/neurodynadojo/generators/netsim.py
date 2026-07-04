@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .hopf import (sphere_points, leadfield_radial, leadfield_3shell, leakage_matrix, measurement_noise)
+from .hopf import (sphere_points, leadfield_radial, leadfield_3shell, leadfield_bem, leakage_matrix, measurement_noise)
 
 
 def directed_modular_adjacency(n, n_mod, p_within, p_between, back, rng, pos=None, wiring_length=0.0):
@@ -163,8 +163,11 @@ class NetsimSystem:
             self.Clist = [self.C, np.abs(C2)]
         self.pos = wire_pos if wire_pos is not None else sphere_points(self.n, self.r_src, rng)
         self.sens = sphere_points(self.n_ch, self.r_sens, rng)
-        if getattr(self, "leadfield", "radial") == "3shell":
+        lf = getattr(self, "leadfield", "radial")
+        if lf == "3shell":
             self.L = leadfield_3shell(self.pos, self.sens)
+        elif lf == "bem":
+            self.L = leadfield_bem(self.pos, self.sens)
         else:
             self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak) if self.leak else np.eye(self.n)
