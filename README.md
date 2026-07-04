@@ -6,6 +6,10 @@
 **A ground-truth benchmark for M/EEG dynamics — connectivity recovery, directed flow,
 traveling waves, and foundation-model probing — under realistic sensor confounds.**
 
+> 📄 **[Technical report / draft for review →](docs/TECHNICAL_REPORT.md)** — full write-up of the
+> platform, the adversarial LLaMEA design loop, and the finding that an LLM-evolved scenario
+> defeats the entire EEG-foundation-model zoo.
+
 ![Netsim confound battery and SNR scaling: no method wins across confounds](figures/preview.png)
 
 Real M/EEG has no known connectivity ground truth, so a method's claim to *recover
