@@ -23,9 +23,20 @@ noise vary per trial.
 """
 from __future__ import annotations
 
+import os
+
 import numpy as np
 
-from .generators.hopf import sphere_points, leadfield_radial, _pink
+from .generators.hopf import sphere_points, leadfield_radial, leadfield_3shell, _pink
+
+
+def _leadfield(src_pos, sens_pos):
+    """Forward model for the battery. Defaults to the infinite-medium radial lead field; set
+    NDD_LEADFIELD=3shell to use the Berg-Scherg 3-shell model (skull spatial-smearing) — a
+    robustness knob for the volume-conduction critique. Every scenario routes through this."""
+    if os.environ.get("NDD_LEADFIELD", "radial") == "3shell":
+        return leadfield_3shell(src_pos, sens_pos)
+    return leadfield_radial(src_pos, sens_pos)
 
 CH32 = ["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8", "FC5", "FC1", "FC2", "FC6", "T7", "C3",
         "Cz", "C4", "T8", "CP5", "CP1", "CP2", "CP6", "P7", "P3", "Pz", "P4", "P8", "PO3",
@@ -40,7 +51,7 @@ def _fixed_sensors(seed):
 
 def _bg_field(sens, n_t, strength, rng, n_src=40):
     """Spatially-correlated 1/f background at the HBN exponent on the FIXED montage `sens`."""
-    L = leadfield_radial(sphere_points(n_src, 60.0, rng), sens)
+    L = _leadfield(sphere_points(n_src, 60.0, rng), sens)
     p = _pink((n_src, n_t), rng)
     p = np.fft.irfft(np.fft.rfft(p, axis=1) *
                      (np.fft.rfftfreq(n_t) + 1e-6)[None, :] ** (-(BG_EXP - 1) / 2), n=n_t, axis=1)
@@ -51,7 +62,7 @@ def _bg_field(sens, n_t, strength, rng, n_src=40):
 def _project(sens, src_pos, S, strength=1.0):
     """Project source activity to sensors and normalise to `strength` x unit RMS (the lead
     field's absolute scale is tiny, so signal must be scaled explicitly vs the background)."""
-    x = leadfield_radial(src_pos, sens) @ S
+    x = _leadfield(src_pos, sens) @ S
     return strength * x / (x.std() + 1e-12)
 
 

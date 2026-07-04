@@ -22,17 +22,25 @@ import numpy as np
 from .hopf import (sphere_points, leadfield_radial, leadfield_3shell, leakage_matrix, measurement_noise)
 
 
-def directed_modular_adjacency(n, n_mod, p_within, p_between, back, rng):
+def directed_modular_adjacency(n, n_mod, p_within, p_between, back, rng, pos=None, wiring_length=0.0):
     """Directed modular connectome: each selected pair gets a forward edge (weight 1) and a
     weak backward edge (weight `back`). Returns C (asymmetric). Directed truth = C>0.5
-    (forward), undirected truth = (C+C.T)>0."""
+    (forward), undirected truth = (C+C.T)>0.
+
+    With `pos` and `wiring_length > 0`, edge probability is scaled by exp(-d_ij / wiring_length)
+    so the connectome is spatially embedded (short-range connections favoured) — making structural
+    coupling collinear with distance-dependent volume conduction, as in real EEG, rather than
+    orthogonal to it (the netsim default)."""
     lab = np.repeat(np.arange(n_mod), int(np.ceil(n / n_mod)))[:n]
+    spatial = pos is not None and wiring_length > 0
     C = np.zeros((n, n))
     for i in range(n):
         for j in range(n):
             if i == j:
                 continue
             p = p_within if lab[i] == lab[j] else p_between
+            if spatial and i < j:
+                p = p * np.exp(-np.linalg.norm(pos[i] - pos[j]) / wiring_length)
             if i < j and rng.random() < p:
                 if rng.random() < 0.5:
                     C[i, j], C[j, i] = 1.0, back
@@ -124,9 +132,11 @@ class NetsimSystem:
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
     leadfield: str = "radial"    # 'radial' (infinite medium) or '3shell' (Berg-Scherg)
+    wiring_length: float = 0.0   # >0: distance-dependent wiring exp(-d/L), spatially-embedded connectome
 
     def __post_init__(self):
         rng = np.random.default_rng(self.seed_struct)
+        wire_pos = None
         if self.connectome is not None:                      # REAL structural connectome
             W = np.asarray(self.connectome, float).copy()
             np.fill_diagonal(W, 0.0)
@@ -140,15 +150,18 @@ class NetsimSystem:
             self._utruth = ((A + A.T) > 0).astype(int)
             self.labels = np.zeros(self.n, int)
         else:
+            if self.wiring_length > 0:                        # spatially-embedded connectome
+                wire_pos = sphere_points(self.n, self.r_src, rng)
             self.C, self.labels = directed_modular_adjacency(
-                self.n, self.n_mod, self.p_within, self.p_between, self.back, rng)
+                self.n, self.n_mod, self.p_within, self.p_between, self.back, rng,
+                pos=wire_pos, wiring_length=self.wiring_length)
             self._utruth = ((self.C + self.C.T) > 0).astype(int)
         # non-stationarity: a second connectome, same edges, re-weighted
         self.Clist = [self.C]
         if self.nonstat:
             C2 = self.C * (1.0 + self.nonstat * rng.standard_normal(self.C.shape)) * (self.C > 0)
             self.Clist = [self.C, np.abs(C2)]
-        self.pos = sphere_points(self.n, self.r_src, rng)
+        self.pos = wire_pos if wire_pos is not None else sphere_points(self.n, self.r_src, rng)
         self.sens = sphere_points(self.n_ch, self.r_sens, rng)
         if getattr(self, "leadfield", "radial") == "3shell":
             self.L = leadfield_3shell(self.pos, self.sens)

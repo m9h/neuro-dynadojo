@@ -299,24 +299,51 @@ leaked the label through row order, class balance, or the probe, these would not
 
 ## 7. Limitations and honest caveats
 
-- **Synthetic ground truth.** Realism is bounded by the forward model and noise model. We use a
-  radial lead field, spatially-correlated 1/f background at the measured HBN exponent, and fixed
-  montages, but not head-model heterogeneity, non-stationary artefacts, or subject variability. A
-  method that wins here has *demonstrated* sensitivity to a mechanism; it has not been validated on
+Several of these were sharpened by an independent code-level review (see
+[`docs/REVIEW_RESPONSE.md`](REVIEW_RESPONSE.md)); where that review prompted a concrete change, we
+note it here.
+
+- **Forward-model realism (volume conduction).** The default forward model is an infinite-medium
+  radial lead field, which under-represents the skull's spatial low-pass smearing — real scalp
+  potentials are more blurred than a `1/d²` decay predicts (Nolte et al. 2004). We now ship an
+  opt-in 3-shell concentric-sphere model (Berg–Scherg approximation, `leadfield="3shell"` on the
+  generators; `NDD_LEADFIELD=3shell` for the scenario battery) and **re-ran the headline result
+  under it: the `cfc_pac` FM blind spot survives** — SINDy still reads it (median AUC ≈1.00) while
+  band-power, DMD, DySCo and the FMs remain at chance (§5, [`figures/cfc_pac_3shell_raincloud.png`]).
+  A method that wins here has *demonstrated* sensitivity to a mechanism; it has not been validated on
   real recordings. The correct reading of a row is "sensitive / blind to *this* generative factor."
-- **Mixed metrics across environments.** Foundation-model rows are scored with fmscope's
-  balanced-accuracy probe inside its container; classical/sysid/latent rows use LogReg AUC. Both are
-  chance-0.50 and the shared rows agree within ≈ 0.05, but a fully single-metric matrix (as in the
-  12-seed `cfc_pac` sweep, §5) is preferable and is the direction of travel.
-- **Modest evolutionary budget.** The LLaMEA runs used `(1+λ)` with budgets of 12–30 and a single
-  backend model. The confound-aware run found a strong scenario quickly, but we have not
-  characterised the search's variance, sensitivity to the fitness weighting, or behaviour at larger
-  budgets or with a multi-model panel.
-- **FM coverage and configuration.** Five FMs at their default checkpoints and montages; results can
-  depend on channel mapping, resampling, and normalisation, which we standardise but do not sweep.
+- **Spatial geometry is decoupled from network topology.** In the network generators the connectome
+  is, by the netsim convention, generated independently of node position, so distance-dependent
+  volume conduction and structural coupling are *orthogonal* — whereas in real cortex they are
+  collinear (wiring cost favours short-range connections; Kaiser & Hilgetag 2006). This makes source
+  separation somewhat easier than reality. We now offer a `wiring_length` parameter that embeds the
+  connectome spatially (edge probability ∝ exp(−d/L)); characterising how each FC method degrades as
+  topology and geometry become collinear is a natural next study. (Note: this concerns the
+  *network-FC-recovery* generators; the six-scenario battery of §3–§5 uses fixed source topographies,
+  so its results are unaffected.)
+- **Linear probing measures linear decodability only.** A method scored blind under a linear probe
+  may still encode the factor *non-linearly*. Linear probing of frozen embeddings is the standard,
+  and deliberately conservative, FM-evaluation convention (Alain & Bengio 2016), and it is what makes
+  classical methods and FMs comparable — but "the FM does not *linearly* expose `cfc_pac`" is the
+  precise claim, not "the FM cannot represent it at all." A non-linear-probe control (kernel / small
+  MLP) is a worthwhile robustness check we have not yet run.
+- **Mixed metrics across environments.** Foundation-model rows of the §3 matrix use fmscope's
+  balanced-accuracy probe; classical/sysid/latent rows use LogReg AUC. Both are chance-0.50 and the
+  shared rows agree within ≈0.05. The headline `cfc_pac` result (§5) is computed under a *single*
+  metric across all methods, so its cross-family comparison is strict.
+- **Modest evolutionary budget.** The LLaMEA runs used `(1+λ)` with budgets 12–30 and a single
+  backend model; we have not characterised search variance, sensitivity to the fitness weighting, or
+  behaviour at larger budgets or with a multi-model panel.
+- **FM coverage and configuration.** Five FMs at default checkpoints and montages; results can depend
+  on channel mapping, resampling, and normalisation, which we standardise but do not sweep.
 - **`cfc_pac` is one point.** One evolved scenario is an existence proof, not a map of the FM blind
-  spot. Charting its extent (which coupling frequencies, phase depths, SNRs remain invisible) is
+  spot. Charting its extent (which coupling frequencies, phase depths, and SNRs remain invisible) is
   future work the platform is built to support.
+
+An isolated-node coupling bug in the Stuart–Landau integrator (a disconnected node received spurious
+`−k·z` self-damping) was found by the same review and fixed; it lived in the network-FC-recovery
+generators (`simulate_hopf`/`simulate_netsim`) and does **not** touch the scenario battery, which
+builds signals from explicit sources rather than the network integrator.
 
 ---
 

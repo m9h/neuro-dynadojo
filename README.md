@@ -11,6 +11,8 @@ traveling waves, and foundation-model probing — under realistic sensor confoun
 > defeats the entire EEG-foundation-model zoo.
 > &nbsp;·&nbsp; 🧭 **[Reviewer's guide →](docs/REVIEW_GUIDE.md)** — claim→code→data map,
 > reproduction tiers, environment provenance, and negative controls.
+> &nbsp;·&nbsp; 💬 **[Response to an independent review →](docs/REVIEW_RESPONSE.md)** — point-by-point,
+> including a 3-shell-forward-model robustness check confirming the `cfc_pac` result survives.
 
 ![Netsim confound battery and SNR scaling: no method wins across confounds](figures/preview.png)
 

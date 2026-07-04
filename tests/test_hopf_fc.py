@@ -92,3 +92,20 @@ def test_leadfield_3shell_selection():
     assert not np.allclose(sys_radial.L, sys_3shell.L)
     x, _ = sys_3shell.simulate(seed=0)
     assert np.all(np.isfinite(x))
+
+
+def test_distance_dependent_wiring_shortens_connections():
+    """wiring_length>0 embeds the connectome spatially: connected node pairs are closer on
+    average than under position-independent (netsim-default) wiring. Addresses the reviewer's
+    spatial-topology-decoupling critique."""
+    import numpy as np
+    from neurodynadojo.generators.hopf import HopfNetworkSystem
+
+    def mean_len(s):
+        ii, jj = np.where(np.triu(s.C, 1) > 0)
+        return np.linalg.norm(s.pos[ii] - s.pos[jj], axis=1).mean() if len(ii) else np.nan
+
+    rnd = HopfNetworkSystem(n=48, wiring_length=0.0, T=400.0)
+    spa = HopfNetworkSystem(n=48, wiring_length=40.0, T=400.0)
+    assert (spa.C > 0).sum() > 0                                  # still produces a connectome
+    assert mean_len(spa) < mean_len(rnd)                          # short-range connections favoured

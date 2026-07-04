@@ -32,14 +32,25 @@ def sphere_points(n, radius, rng):
     return radius * v
 
 
-def modular_adjacency(n, n_mod, p_within, p_between, rng):
+def modular_adjacency(n, n_mod, p_within, p_between, rng, pos=None, wiring_length=0.0):
     """Symmetric binary modular connectome (module = contiguous index block), zero diagonal.
-    Structure is by index, INDEPENDENT of spatial position."""
+
+    By default structure is by index, INDEPENDENT of spatial position (the netsim convention). If
+    `pos` and `wiring_length > 0` are given, the edge probability is additionally multiplied by an
+    exponential wiring-cost term exp(-d_ij / wiring_length) so that short-range connections are
+    favoured over long-range ones — an EEG-relevant refinement (real brain networks are spatially
+    embedded; Kaiser & Hilgetag 2006, Ercsey-Ravasz et al. 2013), which makes structural coupling
+    and distance-dependent volume conduction *collinear* rather than orthogonal. `wiring_length` is
+    in the same units as `pos` (sphere radius)."""
     lab = np.repeat(np.arange(n_mod), int(np.ceil(n / n_mod)))[:n]
+    spatial = pos is not None and wiring_length > 0
     A = np.zeros((n, n))
     for i in range(n):
         for j in range(i + 1, n):
             p = p_within if lab[i] == lab[j] else p_between
+            if spatial:
+                d = np.linalg.norm(pos[i] - pos[j])
+                p = p * np.exp(-d / wiring_length)
             if rng.random() < p:
                 A[i, j] = A[j, i] = 1.0
     return A, lab
@@ -180,12 +191,13 @@ class HopfNetworkSystem:
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
     leadfield: str = "radial"    # 'radial' (infinite medium) or '3shell' (Berg-Scherg)
+    wiring_length: float = 0.0   # >0: distance-dependent wiring exp(-d/L), spatially-embedded connectome
 
     def __post_init__(self):
         rng = np.random.default_rng(self.seed_struct)
-        self.C, self.labels = modular_adjacency(self.n, self.n_mod,
-                                                self.p_within, self.p_between, rng)
-        self.pos = sphere_points(self.n, self.r_src, rng)
+        self.pos = sphere_points(self.n, self.r_src, rng)   # positions first, so wiring can use them
+        self.C, self.labels = modular_adjacency(self.n, self.n_mod, self.p_within, self.p_between,
+                                                rng, pos=self.pos, wiring_length=self.wiring_length)
         if self.montage is not None:
             from .montage import resolve_montage
             self.ch_names, self.sens = resolve_montage(self.montage)
@@ -282,12 +294,13 @@ class KuramotoNetworkSystem:
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
     leadfield: str = "radial"    # 'radial' (infinite medium) or '3shell' (Berg-Scherg)
+    wiring_length: float = 0.0   # >0: distance-dependent wiring exp(-d/L), spatially-embedded connectome
 
     def __post_init__(self):
         rng = np.random.default_rng(self.seed_struct)
-        self.C, self.labels = modular_adjacency(self.n, self.n_mod,
-                                                self.p_within, self.p_between, rng)
-        self.pos = sphere_points(self.n, self.r_src, rng)
+        self.pos = sphere_points(self.n, self.r_src, rng)   # positions first, so wiring can use them
+        self.C, self.labels = modular_adjacency(self.n, self.n_mod, self.p_within, self.p_between,
+                                                rng, pos=self.pos, wiring_length=self.wiring_length)
         if self.montage is not None:
             from .montage import resolve_montage
             self.ch_names, self.sens = resolve_montage(self.montage)
