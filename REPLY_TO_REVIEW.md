@@ -30,10 +30,18 @@ likely to fool ourselves.
 
 ## Phase 1 — finish what the review opened
 
-1. **Map the `cfc_pac` blind-spot boundary.** Right now it's one evolved point. Sweep coupling
-   frequency pair, phase-gate sharpness, and SNR on a grid and re-score the whole zoo at each point,
-   to turn "an FM blind spot exists" into "here is its shape." This is the most direct payoff of
-   having a confound-aware, generalising evolved scenario in hand.
+1. **Map the `cfc_pac` blind-spot boundary. — DONE, and the result surprised us.** We swept gate
+   sharpness × background strength (25-point grid) and five frequency pairs from 4–60 Hz, re-scoring
+   band-power/DMD/SINDy/CEBRA at every point (`examples/map_cfc_pac_boundary.py`,
+   `docs/TECHNICAL_REPORT.md` §5.1). We expected to find the edge of the blind spot; we didn't —
+   within the whole tested range, band-power/DMD never rise above ~0.58 and SINDy never drops below
+   0.89, including the softest near-linear gate and the harshest background/noise level. The
+   "blind-spot margin" stays +0.34 to +0.46 everywhere. CEBRA is the one fragile axis, degrading
+   toward chance as background strength rises. The effect also generalises across all five frequency
+   pairs tested. So "map the boundary" turned into "the region we searched is entirely interior" —
+   which we think strengthens the original claim (not a narrowly-tuned artefact) but means the actual
+   edge is still unknown; extending to harsher noise, near-zero gating, and degenerate frequency
+   separations is the natural next sweep.
 2. **A non-linear probe control.** Your Critique D is right that a linear probe only shows linear
    decodability. We'll add a kernel-SVM / small-MLP probe alongside the linear one for `cfc_pac` and
    the full landscape — if FMs still fail non-linearly, "does not represent" becomes a much stronger

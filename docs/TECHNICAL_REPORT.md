@@ -259,6 +259,53 @@ there is a well-defined, physiologically-motivated class of dynamics (matched-po
 phase coupling) that lies outside what today's EEG foundation models encode, and a method
 (`neuro-dynadojo`) for discovering and characterising such classes automatically.
 
+### 5.1 Mapping the blind-spot boundary
+
+§5 characterises `cfc_pac` at one point in parameter space. In response to review feedback asking
+for the *shape* of the blind spot rather than a single evolved instance, we generalised the same
+mechanism — matched-power cross-frequency phase gating — into a parameterised family,
+`cfc_pac_param(gate_exp, bg_strength, f_lo, f_hi)`, and swept two axes with the same
+consistent-metric harness as §5 (band-power, DMD, SINDy, CEBRA; 5-fold LogReg AUC; n_per=30,
+5 seeds — 3 for CEBRA):
+
+- **Grid A** — gate sharpness (how strongly the high-frequency burst concentrates at the gating
+  phase, exponent 0.5–8) × background strength (inverse SNR, 0.2–1.3× signal RMS), at the canonical
+  6→40 Hz pair.
+- **Grid B** — five (low, high) frequency pairs spanning 4–60 Hz, at canonical sharpness/SNR.
+
+![cfc_pac blind-spot boundary: band-power and DMD stay near chance everywhere in the grid; SINDy stays 0.89-0.98 everywhere; CEBRA degrades with background strength; the margin panel never approaches zero](../figures/cfc_pac_boundary_grid.png)
+
+**The blind spot is far more robust than a single evolved point suggests, and we did not find its
+edge within the tested range.** Across all 25 grid cells: band-power never exceeds 0.58 and DMD
+never exceeds 0.54 — both are indistinguishable from chance everywhere. SINDy stays between 0.89
+and 0.98 at *every* combination, including the softest, nearly-linear gate (exponent 0.5) and the
+harshest background (1.3×) — i.e. the blind spot does not require a sharp nonlinearity or a clean
+signal to hold. The "blind-spot margin" (best dynamics-method AUC minus best spectral-method AUC)
+stays between +0.34 and +0.46 across the *entire* grid, never approaching zero. CEBRA is the one
+axis of fragility: near-perfect at low background (0.90–1.00) but degrading toward chance as
+background strength rises (down to 0.46–0.68 at the harshest noise, cross-referenced against gate
+sharpness) — so CEBRA's version of this capability is SNR-limited in a way SINDy's is not.
+
+![cfc_pac blind spot across frequency bands 4-60 Hz: SINDy and CEBRA stay well above chance at every tested pair while band-power and DMD stay at chance throughout](../figures/cfc_pac_boundary_freq.png)
+
+**The effect generalises across bands.** At five (low, high) pairs from 4→20 Hz to 8→60 Hz, SINDy
+(0.89–0.98) and CEBRA (0.79–1.00) stay well clear of chance while band-power (0.53–0.59) and DMD
+(0.41–0.49) do not move. This is not a theta–gamma-specific artefact; the mechanism — phase-gated
+cross-frequency coupling with matched marginal power — is invisible to spectral/linear methods at
+any of the band separations we tried.
+
+**Honest scope of this result.** We set out to map the *boundary* of the blind spot and instead
+found that, within the ranges we swept (gate sharpness 0.5–8, background 0.2–1.3× RMS, frequency
+pairs 4–60 Hz), there isn't one — the region we searched is entirely interior to the blind spot. That
+is itself informative (the effect is not a fragile, narrowly-tuned artefact of the evolved scenario),
+but it means the actual edge — where the mechanism becomes too weak for SINDy/CEBRA to read, or
+where a spectral leak starts to appear as in the confound episode of §4.2 — lies outside what we
+tested here. Extending the sweep to higher background strengths, still-softer/near-zero gating, and
+degenerate frequency separations (`f_hi` close to `f_lo`, or below the Nyquist-adjacent range) is the
+natural next step, tracked in [`REPLY_TO_REVIEW.md`](../REPLY_TO_REVIEW.md) Phase 1.1. Reproduce with
+`examples/map_cfc_pac_boundary.py` / `examples/plot_cfc_pac_boundary.py`
+(`results/cfc_pac_boundary_grid.csv`, `results/cfc_pac_boundary_freq.csv`).
+
 ---
 
 ## 6. Reproducibility

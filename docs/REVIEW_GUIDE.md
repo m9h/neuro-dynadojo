@@ -26,6 +26,7 @@ safeguards (negative controls) against evaluation artefacts. The scientific writ
 | 7 | The decode is real signal, not harness leakage | `tests/test_negative_control.py` | — | Tier 0 |
 | 8 | `cfc_pac` FM blind spot survives a realistic (3-shell) forward model | `scenarios._leadfield`, `generators/hopf.leadfield_3shell` | `figures/cfc_pac_3shell_raincloud.png` | Tier 1 (venv) + Tier 2 (FMs) |
 | 9 | Spatially-embedding the connectome does not make FC recovery harder — the trend is delay-synchrony, not a leakage confound | `generators/hopf.structural_leakage_collinearity`, `examples/wiring_geometry_study.py` | `results/wiring_geometry_study.csv` | Tier 1 |
+| 10 | `cfc_pac` blind spot holds across the entire tested grid (gate sharpness × SNR × frequency band) — no boundary found within range | `examples/map_cfc_pac_boundary.py` | `results/cfc_pac_boundary_grid.csv`, `results/cfc_pac_boundary_freq.csv`, `figures/cfc_pac_boundary_{grid,freq}.png` | Tier 1 |
 
 ## Reproduction tiers
 
@@ -45,6 +46,8 @@ Cost rises with tier; the load-bearing claims are reproducible at Tier 0–1 wit
   NDD_JSON=out.json python examples/cfc_pac_seeds.py    # SINDy 0.99, CEBRA 0.94 medians over 12 seeds
   NDD_LEADFIELD=3shell NDD_JSON=out3.json python examples/cfc_pac_seeds.py   # claim 8 (3-shell)
   python examples/wiring_geometry_study.py              # claim 9 (distance-wiring vs leakage)
+  python examples/map_cfc_pac_boundary.py               # claim 10 (~20-30 min; boundary grid + freq sweep)
+  python examples/plot_cfc_pac_boundary.py
   ```
 - **Tier 2 — foundation-model and osl-dynamics rows (containers, GPU).** The FM columns and the
   osl-dynamics TDE-HMM row. Requires the two container images below.
