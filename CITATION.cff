@@ -7,7 +7,7 @@ authors:
 version: 0.1.0
 license: MIT
 repository-code: "https://github.com/m9h/neuro-dynadojo"
-keywords: [EEG, MEG, connectivity, dynamics, benchmark, foundation-models, volume-conduction]
+keywords: [EEG, MEG, connectivity, dynamics, benchmark, foundation-models, volume-conduction, adversarial, LLM]
 references:
   - type: article
     authors: [{family-names: Smith, given-names: S. M.}]
@@ -19,3 +19,22 @@ references:
     authors: [{family-names: Bhamidipaty}, {family-names: Kanwal}]
     title: "DynaDojo: An Extensible Platform for Benchmarking Scaling in Dynamical System Identification"
     year: 2023
+  - type: software
+    authors: [{family-names: van Stein, given-names: Niki}, {family-names: Bäck, given-names: Thomas}]
+    title: "LLaMEA: a Large Language Model Evolutionary Algorithm for automatically generating metaheuristics"
+    year: 2024
+    url: "https://github.com/XAI-liacs/LLaMEA"
+  - type: article
+    authors: [{family-names: Schneider, given-names: Steffen}, {family-names: Lee, given-names: Jin Hwa}, {family-names: Mathis, given-names: Mackenzie W.}]
+    title: "Learnable latent embeddings for joint behavioural and neural analysis (CEBRA)"
+    journal: Nature
+    year: 2023
+  - type: software
+    authors: [{family-names: Gohil, given-names: Chetan}, {family-names: Woolrich, given-names: Mark}]
+    title: "osl-dynamics: modelling fast dynamic network activity in M/EEG (TDE-HMM/DyNeMo)"
+    year: 2024
+    url: "https://github.com/OHBA-analysis/osl-dynamics"
+  - type: generic
+    title: "fmscope: The Identity Trap in EEG Foundation Models (linear-probe evaluation protocol)"
+  - type: generic
+    title: "emeg-fm: the NeuroTechX EEG Foundation-Model Atlas (zoo loader)"

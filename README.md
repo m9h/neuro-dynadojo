@@ -9,6 +9,8 @@ traveling waves, and foundation-model probing — under realistic sensor confoun
 > 📄 **[Technical report / draft for review →](docs/TECHNICAL_REPORT.md)** — full write-up of the
 > platform, the adversarial LLaMEA design loop, and the finding that an LLM-evolved scenario
 > defeats the entire EEG-foundation-model zoo.
+> &nbsp;·&nbsp; 🧭 **[Reviewer's guide →](docs/REVIEW_GUIDE.md)** — claim→code→data map,
+> reproduction tiers, environment provenance, and negative controls.
 
 ![Netsim confound battery and SNR scaling: no method wins across confounds](figures/preview.png)
 
@@ -211,6 +213,8 @@ proper **TDE-HMM**), **latent embedding** (CEBRA), and the FM zoo. Every scenari
 | REVE (FM) † | 1.00 | **1.00** | **1.00** | 0.67 | 0.82 | 0.48 |
 | LaBraM (FM) † | 1.00 | **1.00** | **1.00** | 0.54 | 0.52 | 0.66 |
 | LUNA (FM) † | 1.00 | **1.00** | 0.88 | 0.72 | 0.88 | 0.47 |
+
+![Method × scenario landscape heatmap](figures/landscape_heatmap.png)
 
 <sub>Classical / system-ID / state-space / latent rows: cross-validated LogReg **AUC**, n=60. † FM-zoo
 rows (and phase-conn): fmscope balanced-accuracy linear probe, n=60 — same chance level, and the

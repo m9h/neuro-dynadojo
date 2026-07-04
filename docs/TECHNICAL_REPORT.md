@@ -142,6 +142,8 @@ rows (band-power, DMD, DySCo) agree across the two scorers within ≈ 0.05. osl-
 | LaBraM (FM) | 1.00 | **1.00** | **1.00** | 0.54 | 0.52 | 0.66 |
 | LUNA (FM) | 1.00 | **1.00** | 0.88 | 0.72 | 0.88 | 0.47 |
 
+![Method × scenario landscape heatmap: every scenario has a different bright cell; the cfc_pac column is dark for every FM and bright only for SINDy and CEBRA](../figures/landscape_heatmap.png)
+
 Four observations.
 
 1. **No family dominates; every scenario has a different winner.** `spectral` → band-power /
@@ -284,6 +286,14 @@ python examples/plot_cfc_pac_raincloud.py figures/cfc_pac_seeds.json figures/cfc
 
 The evolved champions (`examples/evolved_scenario*.py`) and the raincloud's underlying per-seed
 scores (`figures/cfc_pac_seeds.json`) are committed so results can be re-derived exactly.
+[`docs/REVIEW_GUIDE.md`](REVIEW_GUIDE.md) gives a claim→code→data map, reproduction tiers with
+expected runtimes, and the exact software environment.
+
+**Negative controls.** Because an impressive AUC can be an evaluation bug rather than a real effect,
+`tests/test_negative_control.py` guards the two obvious leakage modes and runs in CI: permuting the
+labels collapses the SINDy/`cfc_pac` decode from 0.90 to ≈0.44 (chance), and a scenario that is only
+1/f background with a label independent of the signal is undecodable by band-power. If the harness
+leaked the label through row order, class balance, or the probe, these would not hold.
 
 ---
 
