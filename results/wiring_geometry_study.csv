@@ -1,0 +1,17 @@
+generator,condition,wiring_length,collinearity,correlation_auc,imag_coherence_auc,wpli_auc
+Hopf,leaked(leak=0.8),0,1.12,0.737,0.498,0.503
+Hopf,leaked(leak=0.8),90,1.67,0.800,0.469,0.505
+Hopf,leaked(leak=0.8),45,2.69,0.875,0.471,0.547
+Hopf,leaked(leak=0.8),25,4.73,0.876,0.361,0.484
+Hopf,no_leak_control(leak=0.0),0,,0.898,0.508,0.510
+Hopf,no_leak_control(leak=0.0),90,,0.916,0.573,0.587
+Hopf,no_leak_control(leak=0.0),45,,0.969,0.539,0.576
+Hopf,no_leak_control(leak=0.0),25,,0.990,0.521,0.594
+Kuramoto,leaked(leak=0.8),0,,0.758,0.508,0.522
+Kuramoto,leaked(leak=0.8),90,,0.811,0.442,0.488
+Kuramoto,leaked(leak=0.8),45,,0.910,0.450,0.531
+Kuramoto,leaked(leak=0.8),25,,0.948,0.432,0.574
+Kuramoto,no_leak_control(leak=0.0),0,,0.941,0.512,0.522
+Kuramoto,no_leak_control(leak=0.0),90,,0.957,0.514,0.549
+Kuramoto,no_leak_control(leak=0.0),45,,0.992,0.446,0.476
+Kuramoto,no_leak_control(leak=0.0),25,,0.999,0.462,0.505

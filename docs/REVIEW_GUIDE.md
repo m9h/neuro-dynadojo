@@ -24,6 +24,8 @@ safeguards (negative controls) against evaluation artefacts. The scientific writ
 | 5 | Confound-aware **targeted** fitness repairs it; same model, real scenario | same, `NDD_MODE=targeted` | `examples/evolved_scenario_targeted.py` | Tier 3 |
 | 6 | `cfc_pac` defeats all 5 FMs + spectral/state-space; only SINDy & CEBRA read it | `scenarios.cfc_pac`, `examples/cfc_pac_seeds.py` | `figures/cfc_pac_seeds.json`, `figures/cfc_pac_raincloud.png` | Tier 1 (SINDy/CEBRA) + Tier 2 (FMs) |
 | 7 | The decode is real signal, not harness leakage | `tests/test_negative_control.py` | — | Tier 0 |
+| 8 | `cfc_pac` FM blind spot survives a realistic (3-shell) forward model | `scenarios._leadfield`, `generators/hopf.leadfield_3shell` | `figures/cfc_pac_3shell_raincloud.png` | Tier 1 (venv) + Tier 2 (FMs) |
+| 9 | Spatially-embedding the connectome does not make FC recovery harder — the trend is delay-synchrony, not a leakage confound | `generators/hopf.structural_leakage_collinearity`, `examples/wiring_geometry_study.py` | `results/wiring_geometry_study.csv` | Tier 1 |
 
 ## Reproduction tiers
 
@@ -41,6 +43,8 @@ Cost rises with tier; the load-bearing claims are reproducible at Tier 0–1 wit
   ```bash
   python examples/scenario_benchmark.py                 # (skips FMs gracefully outside the container)
   NDD_JSON=out.json python examples/cfc_pac_seeds.py    # SINDy 0.99, CEBRA 0.94 medians over 12 seeds
+  NDD_LEADFIELD=3shell NDD_JSON=out3.json python examples/cfc_pac_seeds.py   # claim 8 (3-shell)
+  python examples/wiring_geometry_study.py              # claim 9 (distance-wiring vs leakage)
   ```
 - **Tier 2 — foundation-model and osl-dynamics rows (containers, GPU).** The FM columns and the
   osl-dynamics TDE-HMM row. Requires the two container images below.

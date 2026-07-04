@@ -312,15 +312,22 @@ note it here.
   band-power, DMD, DySCo and the FMs remain at chance (§5, [`figures/cfc_pac_3shell_raincloud.png`]).
   A method that wins here has *demonstrated* sensitivity to a mechanism; it has not been validated on
   real recordings. The correct reading of a row is "sensitive / blind to *this* generative factor."
-- **Spatial geometry is decoupled from network topology.** In the network generators the connectome
-  is, by the netsim convention, generated independently of node position, so distance-dependent
-  volume conduction and structural coupling are *orthogonal* — whereas in real cortex they are
-  collinear (wiring cost favours short-range connections; Kaiser & Hilgetag 2006). This makes source
-  separation somewhat easier than reality. We now offer a `wiring_length` parameter that embeds the
-  connectome spatially (edge probability ∝ exp(−d/L)); characterising how each FC method degrades as
-  topology and geometry become collinear is a natural next study. (Note: this concerns the
-  *network-FC-recovery* generators; the six-scenario battery of §3–§5 uses fixed source topographies,
-  so its results are unaffected.)
+- **Spatial geometry is decoupled from network topology, by default.** In the network generators the
+  connectome is, by the netsim convention, generated independently of node position, so
+  distance-dependent volume conduction and structural coupling are *orthogonal* — whereas in real
+  cortex they are collinear (wiring cost favours short-range connections; Kaiser & Hilgetag 2006). We
+  added a `wiring_length` parameter that spatially embeds the connectome (edge probability
+  ∝ exp(−d/L)) and a `structural_leakage_collinearity` metric to verify the manipulation, then ran
+  the FC-recovery sweep this motivates (`examples/wiring_geometry_study.py`,
+  `results/wiring_geometry_study.csv`). The result is more nuanced than "recovery gets harder": as
+  the connectome becomes collinear with leakage (odds ratio 1.1→4.7), zero-lag correlation recovery
+  *improves* — but a no-leakage control shows the same improvement with leakage switched off, so the
+  driver is an intrinsic short-range-wiring effect (shorter delay → stronger zero-lag synchrony), not
+  a leakage confound. Leakage still costs a stable ≈0.12–0.16 AUC penalty at every collinearity level;
+  it just does not *interact* with spatial collinearity the way the naive hypothesis predicted. See
+  [`docs/REVIEW_RESPONSE.md`](REVIEW_RESPONSE.md) for the full analysis, including a phase-coupled
+  (Kuramoto) replication. (This concerns the *network-FC-recovery* generators; the six-scenario
+  battery of §3–§5 uses fixed source topographies, so its results are unaffected.)
 - **Linear probing measures linear decodability only.** A method scored blind under a linear probe
   may still encode the factor *non-linearly*. Linear probing of frozen embeddings is the standard,
   and deliberately conservative, FM-evaluation convention (Alain & Bengio 2016), and it is what makes

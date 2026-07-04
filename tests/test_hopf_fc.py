@@ -109,3 +109,34 @@ def test_distance_dependent_wiring_shortens_connections():
     spa = HopfNetworkSystem(n=48, wiring_length=40.0, T=400.0)
     assert (spa.C > 0).sum() > 0                                  # still produces a connectome
     assert mean_len(spa) < mean_len(rnd)                          # short-range connections favoured
+
+
+def test_structural_leakage_collinearity_metric():
+    """structural_leakage_collinearity(C, M) discriminates the two regimes Critique B is about:
+    ~1 when structural edges and strong-leakage pairs are independent (netsim default), and >1
+    when they systematically co-occur (spatially-embedded / real-cortex-like wiring)."""
+    from neurodynadojo.generators.hopf import structural_leakage_collinearity
+    rng = np.random.default_rng(0)
+    n = 40
+    # leakage strongest on a fixed random quartile of pairs, independent of which pairs are edges
+    iu = np.triu_indices(n, 1)
+    leak_strong = rng.random(len(iu[0])) < 0.25
+    M_indep = np.eye(n)
+    for (i, j), strong in zip(zip(*iu), leak_strong):
+        M_indep[i, j] = M_indep[j, i] = 0.9 if strong else 0.05
+
+    C_indep = np.zeros((n, n))                              # edges independent of leak_strong
+    edge_idx = rng.choice(len(iu[0]), size=30, replace=False)
+    for k in edge_idx:
+        i, j = iu[0][k], iu[1][k]
+        C_indep[i, j] = C_indep[j, i] = 1.0
+    indep_odds = structural_leakage_collinearity(C_indep, M_indep)
+    assert 0.4 < indep_odds < 2.5                            # near 1: no systematic co-occurrence
+
+    C_collinear = np.zeros((n, n))                           # edges are (mostly) the strong-leak pairs
+    strong_idx = np.where(leak_strong)[0]
+    for k in strong_idx[:30]:
+        i, j = iu[0][k], iu[1][k]
+        C_collinear[i, j] = C_collinear[j, i] = 1.0
+    collinear_odds = structural_leakage_collinearity(C_collinear, M_indep)
+    assert collinear_odds > 5.0                              # structure and leakage co-occur

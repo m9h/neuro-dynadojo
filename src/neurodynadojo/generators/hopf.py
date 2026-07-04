@@ -92,6 +92,27 @@ def leakage_matrix(L, strength):
     return np.eye(L.shape[1]) + strength * Ovl
 
 
+def structural_leakage_collinearity(C, M):
+    """Odds ratio quantifying whether structural edges and volume-conduction leakage co-occur at
+    the SAME node pairs (Critique B: are topology and geometry collinear, as in real cortex, or
+    orthogonal, as in the netsim default?). >1 means a true structural edge is disproportionately
+    likely to also be a strong leakage pair; ~1 means structure and leakage are independent. Uses
+    a 2x2 (edge x top-leakage-quartile) contingency table with Haldane-Anscombe continuity
+    correction (+0.5/cell), so perfect separation gives a large finite ratio, not NaN/inf."""
+    n = C.shape[0]
+    iu = np.triu_indices(n, 1)
+    leak = np.abs(M - np.eye(n))[iu]
+    true = np.maximum((C > 0).astype(int), (C > 0).astype(int).T)[iu]
+    k = max(1, round(0.25 * len(leak)))                     # rank-based: exact top quartile by
+    top = np.zeros(len(leak), dtype=bool)                   # count, robust to ties/bimodal leak
+    top[np.argsort(leak)[-k:]] = True
+    a = true[top].sum() + 0.5                               # edge & top-leak
+    b = (~true[top].astype(bool)).sum() + 0.5                # no-edge & top-leak
+    c = true[~top].sum() + 0.5                               # edge & rest
+    d = (~true[~top].astype(bool)).sum() + 0.5               # no-edge & rest
+    return float((a * d) / (b * c))
+
+
 def _pink(shape, rng):
     """Unit-variance 1/f (pink) noise per channel via spectral shaping."""
     n, T = shape
