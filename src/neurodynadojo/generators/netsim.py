@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .hopf import (sphere_points, leadfield_radial, leakage_matrix, measurement_noise)
+from .hopf import (sphere_points, leadfield_radial, leadfield_3shell, leakage_matrix, measurement_noise)
 
 
 def directed_modular_adjacency(n, n_mod, p_within, p_between, back, rng):
@@ -56,7 +56,15 @@ def simulate_netsim(Clist, a, omega, k, dt, T, noise, seed, fs_out=250.0,
     common global driver. `gain`/`latency` (per-node) apply output amplitude/delay jitter."""
     rng = np.random.default_rng(seed)
     n = Clist[0].shape[0]
-    Cn = [C / (C.sum(1, keepdims=True) + 1e-9) for C in Clist]
+    Cn = []
+    has_conn = []
+    for C in Clist:
+        deg = C.sum(1)
+        hc = deg > 0
+        C_norm = np.zeros_like(C)
+        C_norm[hc] = C[hc] / deg[hc, None]
+        Cn.append(C_norm)
+        has_conn.append(hc)
     nT = int(T / dt)
     seg = seg or nT
     ss = _ou(nT, rng) if shared else None
@@ -65,8 +73,10 @@ def simulate_netsim(Clist, a, omega, k, dt, T, noise, seed, fs_out=250.0,
     out = np.empty((n, nT // step)); oi = 0
     sq = np.sqrt(dt)
     for t in range(nT):
-        C = Cn[(t // seg) % len(Cn)]
-        coupling = k * (C @ z - z)
+        idx = (t // seg) % len(Cn)
+        C = Cn[idx]
+        hc = has_conn[idx]
+        coupling = k * (C @ z - hc * z)
         dz = (a + 1j * omega - np.abs(z) ** 2) * z + coupling
         if shared:
             dz = dz + shared * ss[t]                         # global common input
@@ -113,6 +123,7 @@ class NetsimSystem:
     n_ch: int = 64
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
+    leadfield: str = "radial"    # 'radial' (infinite medium) or '3shell' (Berg-Scherg)
 
     def __post_init__(self):
         rng = np.random.default_rng(self.seed_struct)
@@ -139,7 +150,10 @@ class NetsimSystem:
             self.Clist = [self.C, np.abs(C2)]
         self.pos = sphere_points(self.n, self.r_src, rng)
         self.sens = sphere_points(self.n_ch, self.r_sens, rng)
-        self.L = leadfield_radial(self.pos, self.sens)
+        if getattr(self, "leadfield", "radial") == "3shell":
+            self.L = leadfield_3shell(self.pos, self.sens)
+        else:
+            self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak) if self.leak else np.eye(self.n)
         self.omega = 2 * np.pi * (self.f0 + self.fsigma * rng.standard_normal(self.n)) / 1000.0
         self.gain = (1.0 + self.jitter_gain * rng.standard_normal(self.n)) if self.jitter_gain else None

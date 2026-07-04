@@ -72,3 +72,23 @@ def test_fc_algorithms_are_bench_compatible():
         score = alg.estimate(obs, sys)
         assert score.shape == (sys.n, sys.n)
         assert np.isfinite(edge_auc(score, adj)) or True   # AUC defined given both classes
+
+
+def test_isolated_node_no_damping():
+    """Verify that isolated nodes (degree = 0) do not suffer from coupling self-damping."""
+    C = np.zeros((3, 3))
+    dist = np.zeros((3, 3))
+    omega = np.array([2 * np.pi * 10 / 1000.0] * 3)
+    x = simulate_hopf(C, dist, a=0.05, omega=omega, k=5.0, velocity=5.0, dt=0.1, T=1000.0, noise=0.0, seed=0)
+    # Undamped Hopf nodes in a limit cycle should have high standard deviation (~0.22)
+    assert np.all(x.std(axis=1) > 0.1)
+
+
+def test_leadfield_3shell_selection():
+    """Verify that leadfield='3shell' selects the Berg-Scherg model and simulates successfully."""
+    sys_radial = HopfNetworkSystem(leadfield="radial", T=500.0)
+    sys_3shell = HopfNetworkSystem(leadfield="3shell", T=500.0)
+    assert sys_radial.L.shape == sys_3shell.L.shape
+    assert not np.allclose(sys_radial.L, sys_3shell.L)
+    x, _ = sys_3shell.simulate(seed=0)
+    assert np.all(np.isfinite(x))

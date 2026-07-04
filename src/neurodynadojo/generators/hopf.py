@@ -55,6 +55,21 @@ def leadfield_radial(src_pos, sens_pos):
     return np.stack(cols, 1)
 
 
+def leadfield_3shell(src_pos, sens_pos, g=(0.43, 0.45, 0.12), mu=(0.93, 0.77, 0.43)):
+    """Lead field (n_ch, n_src) using the 3-shell concentric spherical head model
+    (Berg-Scherg approximation, Berg & Scherg 1994) for radial dipoles.
+    This models the skull as a spatial filter (smearing/blurring potentials)."""
+    ori = src_pos / (np.linalg.norm(src_pos, axis=1, keepdims=True) + 1e-12)
+    cols = []
+    for j in range(len(src_pos)):
+        pot = np.zeros(len(sens_pos))
+        for gm, mum in zip(g, mu):
+            d = sens_pos - mum * src_pos[j][None, :]
+            pot += gm * (d @ ori[j]) / ((np.sum(d * d, 1) ** 1.5) + 1e-9)
+        cols.append(pot)
+    return np.stack(cols, 1)
+
+
 def leakage_matrix(L, strength):
     """Zero-lag source-leakage mixing M (n_src,n_src): y = M @ x. Off-diagonal =
     lead-field topography overlap (point-spread / cross-talk), scaled by `strength`.
@@ -105,7 +120,10 @@ def simulate_hopf(C, dist, a, omega, k, velocity, dt, T, noise, seed, fs_out=250
     bounded regardless of node degree -> stable. Returns Re(z) (n, n_out)."""
     rng = np.random.default_rng(seed)
     n = C.shape[0]
-    Cn = C / (C.sum(1, keepdims=True) + 1e-9)          # row-normalised: mean-field coupling
+    degree = C.sum(1)
+    has_conn = degree > 0
+    Cn = np.zeros_like(C)
+    Cn[has_conn] = C[has_conn] / degree[has_conn, None]
     Dind = np.maximum(1, np.round(dist / velocity / dt).astype(int))   # delay in samples
     np.fill_diagonal(Dind, 1)
     buf = int(Dind.max()) + 2
@@ -122,7 +140,7 @@ def simulate_hopf(C, dist, a, omega, k, velocity, dt, T, noise, seed, fs_out=250
         p = t % buf
         read = (p - Dind) % buf                        # read[j,i] delayed sample index
         zdel = hist[Iidx, read]                         # z_i(t - tau_ji), shape (n,n)
-        coupling = k * (np.sum(Cn * zdel, 1) - z)       # diffusive, bounded
+        coupling = k * (np.sum(Cn * zdel, 1) - has_conn * z)       # diffusive, bounded
         dz = (a + 1j * omega - np.abs(z) ** 2) * z + coupling
         z = z + dt * dz + noise * sq2dt * (rng.standard_normal(n) + 1j * rng.standard_normal(n))
         hist[:, (t + 1) % buf] = z
@@ -161,6 +179,7 @@ class HopfNetworkSystem:
     background: float = 0.0      # 1/f cortical background strength (x signal RMS); realistic EEG statistics
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
+    leadfield: str = "radial"    # 'radial' (infinite medium) or '3shell' (Berg-Scherg)
 
     def __post_init__(self):
         rng = np.random.default_rng(self.seed_struct)
@@ -175,7 +194,10 @@ class HopfNetworkSystem:
             self.ch_names = None
             self.sens = sphere_points(self.n_ch, self.r_sens, rng)
         self.dist = np.linalg.norm(self.pos[:, None, :] - self.pos[None, :, :], axis=2)
-        self.L = leadfield_radial(self.pos, self.sens)
+        if getattr(self, "leadfield", "radial") == "3shell":
+            self.L = leadfield_3shell(self.pos, self.sens)
+        else:
+            self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)
         self.omega = 2 * np.pi * (self.f0 + self.fsigma * rng.standard_normal(self.n)) / 1000.0
         self.fs = self.fs_out
@@ -259,6 +281,7 @@ class KuramotoNetworkSystem:
     background: float = 0.0      # 1/f cortical background strength (x signal RMS); realistic EEG statistics
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
+    leadfield: str = "radial"    # 'radial' (infinite medium) or '3shell' (Berg-Scherg)
 
     def __post_init__(self):
         rng = np.random.default_rng(self.seed_struct)
@@ -273,7 +296,10 @@ class KuramotoNetworkSystem:
             self.ch_names = None
             self.sens = sphere_points(self.n_ch, self.r_sens, rng)
         self.dist = np.linalg.norm(self.pos[:, None, :] - self.pos[None, :, :], axis=2)
-        self.L = leadfield_radial(self.pos, self.sens)
+        if getattr(self, "leadfield", "radial") == "3shell":
+            self.L = leadfield_3shell(self.pos, self.sens)
+        else:
+            self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)
         omega0 = 2 * np.pi * self.f0 / 1000.0
         self.lag = omega0 * self.dist / self.velocity        # per-edge phase lag (rad)
@@ -329,6 +355,7 @@ class RingWaveSystem:
     background: float = 0.0      # 1/f cortical background strength (x signal RMS); realistic EEG statistics
     seed_struct: int = 0
     band: tuple = (8.0, 12.0)
+    leadfield: str = "radial"    # 'radial' (infinite medium) or '3shell' (Berg-Scherg)
 
     def __post_init__(self):
         rng = np.random.default_rng(self.seed_struct)
@@ -346,7 +373,10 @@ class RingWaveSystem:
         else:
             self.ch_names = None
             self.sens = sphere_points(self.n_ch, self.r_sens, rng)
-        self.L = leadfield_radial(self.pos, self.sens)
+        if getattr(self, "leadfield", "radial") == "3shell":
+            self.L = leadfield_3shell(self.pos, self.sens)
+        else:
+            self.L = leadfield_radial(self.pos, self.sens)
         self.M = leakage_matrix(self.L, self.leak)
         self.omega = 2 * np.pi * (self.f0 + self.fsigma * rng.standard_normal(self.n)) / 1000.0
         self.fs = self.fs_out
