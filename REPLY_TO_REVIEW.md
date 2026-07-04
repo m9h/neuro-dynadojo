@@ -42,14 +42,24 @@ likely to fool ourselves.
    which we think strengthens the original claim (not a narrowly-tuned artefact) but means the actual
    edge is still unknown; extending to harsher noise, near-zero gating, and degenerate frequency
    separations is the natural next sweep.
-2. **A non-linear probe control.** Your Critique D is right that a linear probe only shows linear
-   decodability. We'll add a kernel-SVM / small-MLP probe alongside the linear one for `cfc_pac` and
-   the full landscape — if FMs still fail non-linearly, "does not represent" becomes a much stronger
-   claim; if a non-linear probe *does* recover it, that's an important correction to the whole
-   result, and we'd rather find it than have a reviewer find it for us.
-3. **A calibrated (not just approximate) 3-shell model**, validated against a real BEM reference
-   (e.g. MNE's sample head model) rather than generic Berg–Scherg constants, so Critique A's fix is
-   load-bearing, not just illustrative.
+2. **A non-linear probe control. — DONE, and it held.** We added a selectable kernel-SVM / small-MLP
+   probe (`neurodynadojo.probes.cv_auc`) and re-ran the `cfc_pac` result across all 12 seeds under
+   both. No method crossed: band-power/DMD/DySCo/HMM and all five FMs stayed at or below chance under
+   *every* probe (a couple, CBraMod/REVE, even dropped slightly under kernel — likely overfitting
+   noise on a small high-dimensional sample, not signal). SINDy and CEBRA stayed clearly informative
+   under all three probes. So "does not represent" survives non-linear probing, not just narrowed
+   wording — see `docs/TECHNICAL_REPORT.md` §5.2, `figures/cfc_pac_probe_comparison.png`.
+3. **A calibrated (not just approximate) 3-shell model. — Superseded by your own follow-up: a real
+   BEM model.** You landed `leadfield_bem` (MNE `fsaverage`) directly, exactly the ask here. We
+   merged it, and in verifying it before trusting a `cfc_pac`-under-BEM claim, found that 10–33% of
+   source points at the battery's default radius (60–70mm) fall outside fsaverage's real anatomical
+   volume and get a silently-zeroed leadfield — including one of `cfc_pac`'s three low-frequency
+   dipoles. We added a warning (radii ≤40mm were dropout-free in our testing) rather than let that
+   stay silent, but have **not yet** re-validated `cfc_pac` under BEM — that needs the scenario
+   battery's source radius made BEM-safe first, which we're treating as a deliberate next step rather
+   than a quick patch to the canonical scenario geometry. Open, and the most concrete thing left in
+   Phase 1: shrink/parameterise the source radius for `NDD_LEADFIELD=bem` and re-run the 12-seed
+   sweep the same way we did for 3-shell.
 
 ## Phase 2 — close the gap Critique B left open
 

@@ -159,3 +159,28 @@ def test_structural_leakage_collinearity_metric():
         C_collinear[i, j] = C_collinear[j, i] = 1.0
     collinear_odds = structural_leakage_collinearity(C_collinear, M_indep)
     assert collinear_odds > 5.0                              # structure and leakage co-occur
+
+
+def test_leadfield_bem_warns_on_dead_sources_at_battery_default_radius():
+    """The scenario battery's default source radius (60mm, sphere_points) exceeds fsaverage's
+    real anatomical extent for some points, silently zeroing their BEM leadfield column (their
+    signal reaches no sensor). leadfield_bem must WARN rather than silently degrade -- caught
+    empirically after merging the BEM contribution (radii <=40mm were dropout-free in testing)."""
+    import pytest
+    mne = pytest.importorskip("mne")
+    try:
+        mne.datasets.fetch_fsaverage(verbose=False)
+    except Exception:
+        pytest.skip("fsaverage BEM template files not available or offline")
+
+    from neurodynadojo.generators.hopf import sphere_points, leadfield_bem
+    sens = sphere_points(16, 90.0, np.random.default_rng(0))
+    src_60mm = sphere_points(20, 60.0, np.random.default_rng(1))
+    with pytest.warns(RuntimeWarning, match="ZERO leadfield"):
+        leadfield_bem(src_60mm, sens)
+
+    src_30mm = sphere_points(20, 30.0, np.random.default_rng(1))   # empirically dropout-free
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        leadfield_bem(src_30mm, sens)                              # must NOT warn/raise

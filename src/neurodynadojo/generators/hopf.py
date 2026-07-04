@@ -140,6 +140,20 @@ def leadfield_bem(src_pos, sens_pos):
     leadfield_full = np.zeros((len(sens_pos), len(src_pos)))
     kept_indices = fwd_fixed['src'][0]['vertno']
     leadfield_full[:, kept_indices] = fwd_fixed['sol']['data']
+
+    n_dead = len(src_pos) - len(kept_indices)
+    if n_dead > 0:
+        import warnings
+        dead_idx = sorted(set(range(len(src_pos))) - set(kept_indices))
+        warnings.warn(
+            f"leadfield_bem: {n_dead}/{len(src_pos)} source point(s) fell outside fsaverage's "
+            f"valid BEM volume and have a ZERO leadfield column (their signal reaches no sensor). "
+            f"This happens when source radius is too large for the anatomical head model -- "
+            f"radii <=40mm at fsaverage scale were empirically dropout-free in testing, vs. "
+            f"~10-33% dropout at 60-70mm (the sphere_points radii the scenario battery/generators "
+            f"use by default). Dead source indices: {dead_idx}. Shrink the source radius when using "
+            f"leadfield='bem', or treat this forward model as illustrative only until the battery's "
+            f"source geometry is made BEM-safe.", RuntimeWarning, stacklevel=2)
     return leadfield_full
 
 

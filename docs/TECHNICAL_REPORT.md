@@ -306,6 +306,33 @@ natural next step, tracked in [`REPLY_TO_REVIEW.md`](../REPLY_TO_REVIEW.md) Phas
 `examples/map_cfc_pac_boundary.py` / `examples/plot_cfc_pac_boundary.py`
 (`results/cfc_pac_boundary_grid.csv`, `results/cfc_pac_boundary_freq.csv`).
 
+### 5.2 A non-linear probe control
+
+§3–§5 score every method with a linear probe (5-fold cross-validated logistic regression on
+frozen features/embeddings) — the standard, and deliberately conservative, convention for
+evaluating whether a representation encodes a factor. A reviewer correctly pointed out
+(Critique D) that this only tests *linear* decodability: a method scored "blind" could still
+encode `cfc_pac` in a form only a non-linear boundary exposes, in which case "the FM does not
+represent the factor" would be an overstatement.
+
+We added a selectable probe (`neurodynadojo.probes.cv_auc`, `probe="linear"|"kernel"|"mlp"`) —
+an RBF-SVM and a small 2-layer MLP, same StandardScaler+StratifiedKFold protocol as the linear
+probe — and re-scored every method that failed under the linear probe, across the same 12 seeds:
+
+![cfc_pac under linear, kernel, and MLP probes: SINDy and CEBRA stay bright across all three; every spectral method and every FM stays dark across all three — no method crosses from blind to informative under a non-linear probe](../figures/cfc_pac_probe_comparison.png)
+
+**No method crosses.** Band-power, DMD, DySCo, HMM, and every one of the five foundation models
+(BIOT, CBraMod, LUNA, REVE, LaBraM) stay at or near chance under *both* the kernel and the MLP
+probe, exactly as under the linear one — several (CBraMod, REVE) are if anything slightly *lower*
+under the kernel probe, consistent with a higher-capacity classifier overfitting noise on a small
+(n=80), high-dimensional sample rather than recovering a real signal. Conversely, SINDy and CEBRA
+— the two methods that read `cfc_pac` — stay clearly above chance under every probe (SINDy
+0.85–0.99, CEBRA 0.84–0.97). So the result is not an artefact of probe choice: `cfc_pac` is not
+merely *linearly* inaccessible to the spectral/FM methods, it is inaccessible under a
+substantially more expressive non-linear boundary too. This directly settles Critique D for this
+result — Reproduce with `NDD_PROBE=kernel|mlp examples/cfc_pac_seeds.py` and
+`examples/plot_cfc_pac_probe_comparison.py` (`results/cfc_pac_probe_{kernel,mlp}.json`).
+
 ---
 
 ## 6. Reproducibility

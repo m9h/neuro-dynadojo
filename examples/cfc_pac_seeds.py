@@ -1,13 +1,20 @@
 """Per-seed AUC distributions on the evolved `cfc_pac` scenario, for a raincloud plot.
 
 A raincloud needs a DISTRIBUTION per method, so we regenerate `cfc_pac` across many seeds and score
-every method (one consistent metric: 5-fold LogReg AUC, chance .50) once per seed. Three passes
-accumulate into one JSON (`NDD_JSON`): the venv pass (classical / system-ID / latent), the container
-pass (FM zoo, `NDD_FMS=1`), and the oracle-osl pass (`NDD_OSL=1`). Then plot_cfc_pac_raincloud.py
-draws it.
+every method (one consistent metric per run: 5-fold AUC under a SELECTABLE probe, chance .50) once
+per seed. Three passes accumulate into one JSON (`NDD_JSON`): the venv pass (classical / system-ID /
+latent), the container pass (FM zoo, `NDD_FMS=1`), and the oracle-osl pass (`NDD_OSL=1`). Then
+plot_cfc_pac_raincloud.py draws it.
+
+`NDD_PROBE` selects the probe (default `linear`, i.e. LogReg -- the platform default everywhere
+else): `kernel` (RBF-SVM) or `mlp` (small 2-layer net) test whether a method/FM that fails under a
+LINEAR probe is nonetheless NON-LINEARLY decodable -- the review's Critique D (a linear probe shows
+linear decodability only). Same StandardScaler+StratifiedKFold protocol for all three probes
+(`neurodynadojo.probes.cv_auc`), so results differ only in probe capacity.
 
   # venv:       classical + sysid + CEBRA
   PYTHONPATH=src NDD_JSON=out.json python examples/cfc_pac_seeds.py
+  PYTHONPATH=src NDD_PROBE=kernel NDD_JSON=out_kernel.json python examples/cfc_pac_seeds.py
   # container:  FMs   (via run_leaderboard_container.sh -> this script with NDD_FMS=1)
   # oracle-osl: TDE-HMM (via run_osl_container.sh -> this script with NDD_OSL=1)
 """
@@ -24,18 +31,12 @@ from neurodynadojo.scenarios import SCENARIOS
 SEEDS = int(os.environ.get("NDD_SEEDS", "12"))
 NPER = int(os.environ.get("NDD_NPER", "40"))
 JSON = os.environ["NDD_JSON"]
+PROBE = os.environ.get("NDD_PROBE", "linear")
 
 
 def auc(F, y):
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.model_selection import cross_val_predict, StratifiedKFold
-    from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.metrics import roc_auc_score
-    pr = cross_val_predict(make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)),
-                           F, y, cv=StratifiedKFold(5, shuffle=True, random_state=0),
-                           method="predict_proba")[:, 1]
-    return float(roc_auc_score(y, pr))
+    from neurodynadojo.probes import cv_auc
+    return cv_auc(F, y, probe=PROBE)
 
 
 def classical_methods():

@@ -12,5 +12,5 @@ exec docker run --rm --gpus all --ipc=host \
   ${NDD_SCRATCH:+-v "$NDD_SCRATCH:/scratch"} \
   -e PYTHONNOUSERSITE=1 -e PYTHONPATH="$PYPATH" -e HF_HOME="$T9/hf" \
   -e HF_TOKEN="$HF_TOKEN" -e NDD_DEV="${NDD_DEV:-cpu}" -e NDD_SKIP_ZOO="${NDD_SKIP_ZOO:-}" -e NDD_NSUBJ="${NDD_NSUBJ:-40}" -e MNE_DATA="$T9/moabb_data" \
-  -e NDD_JSON="${NDD_JSON:-}" -e NDD_FMS="${NDD_FMS:-}" -e NDD_OSL="${NDD_OSL:-}" -e NDD_SEEDS="${NDD_SEEDS:-12}" -e NDD_NPER="${NDD_NPER:-40}" -e NDD_LEADFIELD="${NDD_LEADFIELD:-radial}" -w /emeg-fm \
+  -e NDD_JSON="${NDD_JSON:-}" -e NDD_FMS="${NDD_FMS:-}" -e NDD_OSL="${NDD_OSL:-}" -e NDD_SEEDS="${NDD_SEEDS:-12}" -e NDD_NPER="${NDD_NPER:-40}" -e NDD_LEADFIELD="${NDD_LEADFIELD:-radial}" -e NDD_PROBE="${NDD_PROBE:-linear}" -w /emeg-fm \
   "$IMAGE" python "${1:-/ndd/examples/multi_fm_leaderboard_container.py}"

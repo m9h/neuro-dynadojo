@@ -7,14 +7,19 @@ conceptual critiques with concrete options and an empirical robustness check, an
 where a claim needs narrowing.
 
 **Summary of changes made in response:**
-- Kept the reviewer's **isolated-node damping fix** and **3-shell lead field** (both merged, both tested).
+- Kept the reviewer's **isolated-node damping fix**, **3-shell lead field**, and — in a follow-up
+  commit — a real **BEM forward model** (MNE `fsaverage`) (all merged, all tested).
 - Added a **`wiring_length`** option that spatially embeds the connectome, a
   `structural_leakage_collinearity` verification metric, and ran the FC-recovery sweep the critique
   motivates — the naive "collinearity makes recovery harder" hypothesis does not hold; the trend is
   driven by delay-synchrony, not a leakage confound (Critique B, **closed out empirically**).
 - Routed the **scenario battery through a selectable forward model** and **re-ran the headline
-  result under the 3-shell model** (Critique A) — the finding survives.
-- Revised the report's wording on linear probing (Critique D) and its limitations section.
+  result under the 3-shell model** (Critique A) — the finding survives. Verifying the follow-up BEM
+  model surfaced a real dead-source issue at the battery's default radius, now fixed with a warning
+  (not yet re-validated `cfc_pac` under BEM — tracked as the next step).
+- Added a **selectable non-linear probe** (kernel-SVM / small MLP) and re-ran the headline `cfc_pac`
+  result under it (Critique D) — no method crosses from blind to informative; the claim survives
+  under non-linear probing, not just narrowed wording.
 
 ---
 
@@ -55,6 +60,21 @@ Caveat we would add to the reviewer's fix: the 3-shell parameters (`g`, `mu`) ar
 Berg-style approximation, not calibrated to a specific set of conductivity ratios, so it should be
 read as a *more realistic alternative* forward model, not a validated head model. It is opt-in;
 the default remains radial for continuity.
+
+**Addendum — a real BEM model landed, and it caught something.** The reviewer subsequently
+contributed `leadfield_bem`: an actual Boundary Element Method forward solution via MNE-Python's
+`fsaverage` template (`leadfield="bem"` / `NDD_LEADFIELD=bem`) — exactly the "validated against a
+real BEM reference" step we asked for as a follow-up. We merged it and, verifying it before trusting
+a `cfc_pac`-under-BEM robustness claim, found that **10–33% of source points at the battery's
+default radius (60–70mm) fall outside fsaverage's actual anatomical volume and silently get a
+ZERO leadfield column** — including one of `cfc_pac`'s three low-frequency signal dipoles.
+Empirically, radii ≤40mm were dropout-free in our testing. We added a `RuntimeWarning` to
+`leadfield_bem` that surfaces the dead-source count and indices instead of silently degrading the
+signal (`test_leadfield_bem_warns_on_dead_sources_at_battery_default_radius`), so this is now a
+visible, actionable caveat rather than a silent one. **We have not yet re-validated `cfc_pac` under
+BEM** — doing so honestly requires shrinking the scenario battery's source radius for BEM mode
+first (a change to the canonical scenario geometry we're deliberately not rushing); it is the next
+concrete step, tracked in [`../REPLY_TO_REVIEW.md`](../REPLY_TO_REVIEW.md) Phase 1.3.
 
 ## Critique B — network topology decoupled from spatial geometry · **Accepted, implemented, and empirically closed out**
 
@@ -118,13 +138,36 @@ sinusoidal/Gabor sources and never calls those integrators, so the §3–§5 res
 have made this scoping explicit in the report so the fix is not mistaken for a correction to the
 headline numbers.
 
-## Critique D — linear probe ≠ representational capacity · **Accepted, wording narrowed**
+## Critique D — linear probe ≠ representational capacity · **Accepted, and now tested — the claim survives**
 
-Fair. A linear probe measures *linear* decodability; a factor could be encoded non-linearly. We use
-frozen-embedding linear probing because it is the standard, conservative FM-evaluation convention and
-the only thing that puts classical methods and FMs on one footing — but the precise claim is "the FM
-does not *linearly* expose `cfc_pac`," not "cannot represent it." We have narrowed the report's
-language accordingly and added a non-linear-probe control (kernel / small MLP) to future work.
+Fair, and we went further than narrowing the wording: we added a selectable probe
+(`neurodynadojo.probes.cv_auc`, `linear`/`kernel`/`mlp` — an RBF-SVM and a small 2-layer MLP, same
+StandardScaler+StratifiedKFold protocol) and re-scored every `cfc_pac` method across the same 12
+seeds under all three:
+
+| method | linear | kernel | mlp |
+|---|---|---|---|
+| band-power | 0.52 | 0.46 | 0.51 |
+| SINDy | **0.99** | **0.98** | **0.85** |
+| DMD | 0.48 | 0.45 | 0.45 |
+| DySCo | 0.56 | 0.49 | 0.53 |
+| HMM | 0.50 | 0.49 | 0.52 |
+| CEBRA | **0.94** | **0.84** | **0.97** |
+| BIOT | 0.51 | 0.53 | — |
+| CBraMod | 0.57 | 0.38 | — |
+| LUNA | 0.59 | 0.54 | — |
+| REVE | 0.56 | 0.45 | — |
+| LaBraM | 0.65 | 0.56 | — |
+
+(FMs run under the kernel probe only, scoped to control container cost; `mlp` on venv methods.)
+**No method crosses.** Every spectral/FM method that failed linearly stays at or below chance under
+both non-linear probes — a couple (CBraMod, REVE) even drop under the kernel probe, consistent with
+a higher-capacity classifier overfitting a small (n=80), high-dimensional sample rather than
+recovering signal. SINDy and CEBRA stay clearly informative under every probe. So the precise claim
+— "the FM does not expose `cfc_pac` under a linear probe" — turns out to also hold under two
+substantially more expressive non-linear ones; we're no longer relying on narrowed wording alone.
+See [`TECHNICAL_REPORT.md`](TECHNICAL_REPORT.md) §5.2 and
+`../figures/cfc_pac_probe_comparison.png`.
 
 ## Critique E — redundant spectral shaping in `_bg_field` · **Acknowledged, minor**
 

@@ -27,6 +27,8 @@ safeguards (negative controls) against evaluation artefacts. The scientific writ
 | 8 | `cfc_pac` FM blind spot survives a realistic (3-shell) forward model | `scenarios._leadfield`, `generators/hopf.leadfield_3shell` | `figures/cfc_pac_3shell_raincloud.png` | Tier 1 (venv) + Tier 2 (FMs) |
 | 9 | Spatially-embedding the connectome does not make FC recovery harder — the trend is delay-synchrony, not a leakage confound | `generators/hopf.structural_leakage_collinearity`, `examples/wiring_geometry_study.py` | `results/wiring_geometry_study.csv` | Tier 1 |
 | 10 | `cfc_pac` blind spot holds across the entire tested grid (gate sharpness × SNR × frequency band) — no boundary found within range | `examples/map_cfc_pac_boundary.py` | `results/cfc_pac_boundary_grid.csv`, `results/cfc_pac_boundary_freq.csv`, `figures/cfc_pac_boundary_{grid,freq}.png` | Tier 1 |
+| 11 | `cfc_pac` blind spot survives non-linear (kernel/MLP) probing — no method crosses from blind to informative | `neurodynadojo.probes.cv_auc`, `examples/cfc_pac_seeds.py` (`NDD_PROBE=kernel\|mlp`) | `results/cfc_pac_probe_{kernel,mlp}.json`, `figures/cfc_pac_probe_comparison.png` | Tier 1 (venv) + Tier 2 (FM kernel probe) |
+| 12 | BEM forward model (MNE fsaverage) silently zeroes 10–33% of sources at the battery's default radius; `cfc_pac` not yet re-validated under it | `generators/hopf.leadfield_bem` (dead-source `RuntimeWarning`) | `tests/test_hopf_fc.py::test_leadfield_bem_warns_on_dead_sources_at_battery_default_radius` | Tier 1 |
 
 ## Reproduction tiers
 
@@ -48,6 +50,9 @@ Cost rises with tier; the load-bearing claims are reproducible at Tier 0–1 wit
   python examples/wiring_geometry_study.py              # claim 9 (distance-wiring vs leakage)
   python examples/map_cfc_pac_boundary.py               # claim 10 (~20-30 min; boundary grid + freq sweep)
   python examples/plot_cfc_pac_boundary.py
+  NDD_PROBE=kernel NDD_JSON=out_k.json python examples/cfc_pac_seeds.py   # claim 11 (non-linear probe)
+  NDD_PROBE=mlp    NDD_JSON=out_m.json python examples/cfc_pac_seeds.py
+  python examples/plot_cfc_pac_probe_comparison.py
   ```
 - **Tier 2 — foundation-model and osl-dynamics rows (containers, GPU).** The FM columns and the
   osl-dynamics TDE-HMM row. Requires the two container images below.

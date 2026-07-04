@@ -19,6 +19,38 @@ from __future__ import annotations
 import numpy as np
 
 
+def cv_auc(F, y, probe="linear", seed=0, n_splits=5):
+    """Cross-validated binary-classification AUC of features `F` for label `y`, with a
+    SELECTABLE probe: 'linear' (LogReg, the platform's default -- decodability under a linear
+    boundary), 'kernel' (RBF-SVM -- decodability under a non-linear boundary the frozen
+    representation's geometry alone determines), or 'mlp' (small 2-layer MLP -- a learned
+    non-linear boundary). Added in response to the review critique that a linear probe measures
+    linear decodability only: 'the FM does not expose factor X' should mean under ANY reasonable
+    probe, not just a linear one. Same StandardScaler + StratifiedKFold protocol for all three,
+    so results differ only in the probe's capacity, not the evaluation procedure."""
+    from sklearn.model_selection import cross_val_predict, StratifiedKFold
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import roc_auc_score
+    if probe == "linear":
+        from sklearn.linear_model import LogisticRegression
+        clf = LogisticRegression(max_iter=1000)
+    elif probe == "kernel":
+        from sklearn.svm import SVC
+        clf = SVC(kernel="rbf", probability=True, random_state=seed)
+    elif probe == "mlp":
+        from sklearn.neural_network import MLPClassifier
+        # early_stopping=True carves a validation split off small CV folds and can halt near-
+        # random init on tiny samples; rely on max_iter as the training budget instead.
+        clf = MLPClassifier(hidden_layer_sizes=(32,), max_iter=2000, random_state=seed)
+    else:
+        raise ValueError(f"unknown probe {probe!r}: use 'linear', 'kernel', or 'mlp'")
+    est = make_pipeline(StandardScaler(), clf)
+    pred = cross_val_predict(est, F, y, cv=StratifiedKFold(n_splits, shuffle=True, random_state=seed),
+                             method="predict_proba")[:, 1]
+    return float(roc_auc_score(y, pred))
+
+
 def factor_dataset(system_factory, factor, values, n_per=8, seed0=0, space="sensor", **fixed):
     """Simulate `n_per` recordings at each value of a generative `factor`, in sensor space.
     Returns [(obs (n_ch, n_times), value), ...] — the labeled probe set."""
