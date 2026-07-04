@@ -255,9 +255,14 @@ Two **real runs** (both saved verbatim, both reproduce):
 
 That evolved scenario is now a **first-class battery row** (the `cfc_pac` column above), folded into
 `scenarios.py` with its anti-leakage controls preserved. It is a benchmark case the platform
-*discovered about itself* — and, run against the full zoo, it turned out to defeat **every** EEG-FM
-(0.47–0.66) and every spectral/FC method, cracked only by SINDy (0.97) and CEBRA (0.91). A blind
-spot for foundation models, bred by the platform's own evolution loop.
+*discovered about itself* — and, run against the full zoo across 12 scenario seeds (one consistent
+LogReg-AUC metric), it turned out to defeat **every** EEG-FM and every spectral / dynamic-FC /
+state-space method, cracked only by **SINDy (0.99)** and **CEBRA (0.94)**:
+
+![cfc_pac raincloud: SINDy and CEBRA read the evolved PAC scenario; all five EEG-FMs and every spectral/state-space/dynamic-FC method sit at chance](figures/cfc_pac_raincloud.png)
+
+A blind spot for foundation models, bred by the platform's own evolution loop
+(`examples/cfc_pac_seeds.py` + `plot_cfc_pac_raincloud.py`).
 
 Each scenario is calibrated by real HBN data and maps to an HBN task (resting → spectral,
 SurroundSupp → evoked, videos → naturalistic). See
