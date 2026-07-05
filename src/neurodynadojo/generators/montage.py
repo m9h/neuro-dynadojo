@@ -31,12 +31,37 @@ BENDR_CHS = [
 
 def resolve_montage(spec):
     """`spec`: a list of 10-20 channel names, or a preset key ("1020_19", "1020_20",
-    "bendr" = BENDR's exact 19-EEG pretraining montage). Returns (ch_names, positions_mm)
+    "bendr" = BENDR's exact 19-EEG pretraining montage, "sci128" = SCI 128-channel montage,
+    "sci256" = SCI 256-channel montage). Returns (ch_names, positions_mm)
     centred at the electrode centroid. Only the standard_1020 presets require MNE."""
     import numpy as np
+    import os
     if spec == "bendr":
         names = [c for c, _ in BENDR_CHS]
         P = np.array([p for _, p in BENDR_CHS], float) * 1000.0      # m -> mm
+        return names, P - P.mean(0)
+    elif spec in ("sci128", "sci256"):
+        import zipfile
+        import scipy.io
+        import io
+        zip_path = "/home/mhough/data/sci.utah.edu/~datasets/SCI_headmodel/EEG.zip"
+        if not os.path.exists(zip_path):
+            raise FileNotFoundError(f"SCI Head Model EEG.zip not found at {zip_path}")
+        
+        n_ch = 128 if spec == "sci128" else 256
+        mat_internal_path = (
+            "EEG/128 channel/electrodes_scirun_128.mat"
+            if spec == "sci128"
+            else "EEG/256 channel/electrodes_scirun.mat"
+        )
+        
+        with zipfile.ZipFile(zip_path, "r") as z:
+            with z.open(mat_internal_path) as f:
+                mat_data = scipy.io.loadmat(io.BytesIO(f.read()))
+                
+        node = mat_data["Field1"][0, 0]["node"]
+        names = [f"EEG{i+1:03d}" for i in range(n_ch)]
+        P = np.asarray(node[:n_ch], float)
         return names, P - P.mean(0)
     import mne
     names = PRESETS[spec] if isinstance(spec, str) else list(spec)
