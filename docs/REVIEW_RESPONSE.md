@@ -190,3 +190,16 @@ We thank the reviewer. The critiques materially improved the rigor of the claims
 contributions are merged with attribution in the commit history. Our reply, including a forward
 plan for what we build next in response to (and independent of) this review, is in
 [`../REPLY_TO_REVIEW.md`](../REPLY_TO_REVIEW.md).
+
+## Addendum — a third contribution, and a portability fix
+
+The reviewer subsequently landed an EGI 128/256-channel montage loader
+(`generators/montage.py`, `sci128`/`sci256`, from the SCI Utah head-model dataset). We merged it
+and, applying the same verify-before-trusting standard as the BEM model, found the dataset path was
+hardcoded to the authoring machine with no override — unlike the project's existing
+`NDD_CONNECTOME` convention for external data — meaning it would silently only work on that one
+machine. Fixed with `NDD_SCI_HEADMODEL_ZIP`, matching that convention, plus a test confirming the
+error message now names the override
+(`test_missing_sci_headmodel_error_names_the_override`). This is exactly the kind of gap
+[`DOCS_QA_CHARTER.md`](DOCS_QA_CHARTER.md) — written the same day — exists to catch; it's recorded
+there as a worked example.

@@ -44,9 +44,16 @@ def resolve_montage(spec):
         import zipfile
         import scipy.io
         import io
-        zip_path = "/home/mhough/data/sci.utah.edu/~datasets/SCI_headmodel/EEG.zip"
+        # NDD_SCI_HEADMODEL_ZIP overrides the path (matches NDD_CONNECTOME's convention for
+        # external data files) -- the hardcoded default only exists on the machine this was
+        # authored on and is not portable/reproducible elsewhere without an override.
+        zip_path = os.environ.get(
+            "NDD_SCI_HEADMODEL_ZIP",
+            "/home/mhough/data/sci.utah.edu/~datasets/SCI_headmodel/EEG.zip")
         if not os.path.exists(zip_path):
-            raise FileNotFoundError(f"SCI Head Model EEG.zip not found at {zip_path}")
+            raise FileNotFoundError(
+                f"SCI Head Model EEG.zip not found at {zip_path}. Set NDD_SCI_HEADMODEL_ZIP to "
+                f"its location, or download it from sci.utah.edu's SCI_headmodel dataset.")
         
         n_ch = 128 if spec == "sci128" else 256
         mat_internal_path = (

@@ -45,6 +45,7 @@ when nothing obviously changed — staleness accumulates quietly.
   | `NDD_NSUBJ` | `hbn_surroundsupp_decode.py` | subject count | `40` |
   | `NDD_SKIP_ZOO` | `hbn_surroundsupp_decode.py` | skip the FM zoo | unset |
   | `NDD_CONNECTOME` | `netsim_real_connectome.py` | path to a real SC matrix | `desikan68_SC.npy` |
+  | `NDD_SCI_HEADMODEL_ZIP` | `generators/montage.py` (`sci128`/`sci256`) | path to the SCI Utah EEG head-model zip | machine-specific; **added after this charter caught it missing** — see §6 |
 
 - **`CITATION.cff` currency.** Check it names every method/paper the report now cites (SINDy, CEBRA,
   osl-dynamics, LLaMEA, Berg–Scherg, MNE/fsaverage BEM, DySCo, etc.) whenever a new one is added to
@@ -106,6 +107,13 @@ when nothing obviously changed — staleness accumulates quietly.
   files that no longer exist.
 - **Detect mirror drift** between `neuro-dynadojo/examples/` and the `smni-cmi/scripts/` mirror,
   currently kept in sync by manual `cp` after each change with nothing catching silent divergence.
+- **External-data paths must be overridable, not hardcoded.** Caught the day this charter was
+  written: a contributed EGI 128/256-channel montage loader (`generators/montage.py`) hardcoded an
+  absolute path to a local dataset with no env-var override, unlike the project's existing
+  `NDD_CONNECTOME` convention for external data — meaning it silently only worked on the machine it
+  was authored on. Fixed with `NDD_SCI_HEADMODEL_ZIP`. This is the check that should catch the next
+  one before it ships: any new `os.path.exists("/home/...")`-style hardcoded path in `src/` or
+  `examples/` should be flagged and given an env-var override in the same commit.
 
 ## Out of scope
 
