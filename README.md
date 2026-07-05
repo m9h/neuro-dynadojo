@@ -15,6 +15,8 @@ traveling waves, and foundation-model probing — under realistic sensor confoun
 > including a 3-shell-forward-model robustness check confirming the `cfc_pac` result survives.
 > &nbsp;·&nbsp; ✉️ **[Reply to the reviewer →](REPLY_TO_REVIEW.md)** — our plan for what to build
 > next, in direct response to (and independent of) the review.
+> &nbsp;·&nbsp; 🧹 **[Docs & QA charter →](docs/DOCS_QA_CHARTER.md)** — the recurring checks that
+> keep claims, docs, and reproducibility honest as the project moves.
 
 ![Netsim confound battery and SNR scaling: no method wins across confounds](figures/preview.png)
 
